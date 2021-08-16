@@ -1,5 +1,6 @@
 module;
 
+#include <concepts>
 #include <cstddef>
 #include <cstdlib>
 #include <functional>
@@ -12,21 +13,26 @@ namespace eco {
 inline namespace cpp20 {
 
 template <typename T>
-struct ssize_type_traits;
+struct ssize_type_traits
+{
+  using type = T::ssize_type;
+};
 
 export template <typename T>
 using ssize_type_t = typename ssize_type_traits<T>::type;
 
 export struct memory_view : public std::ranges::view_interface<memory_view>
 {
+  using ssize_type = std::ptrdiff_t;
+    
   void* first{};
-  std::ptrdiff_t size{};
+  ssize_type size{};
 
   [[nodiscard]] constexpr
   memory_view() noexcept = default;
 
   [[nodiscard]] constexpr
-  memory_view(void* f, std::ptrdiff_t s) noexcept
+  memory_view(void* f, ssize_type s) noexcept
     : first{f}
     , size{s}
   {}
@@ -51,12 +57,6 @@ export struct memory_view : public std::ranges::view_interface<memory_view>
 };
 
 static_assert(std::ranges::view<memory_view>);
-
-export template <>
-struct ssize_type_traits<memory_view>
-{
-  using type = std::ptrdiff_t;
-};
 
 export [[nodiscard]] constexpr auto
 operator==(memory_view x, memory_view y) noexcept -> bool

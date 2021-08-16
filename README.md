@@ -3,6 +3,48 @@ eco
 
 eco is a generic C++ library of efficient components.
 
+# Sequence
+
+The `eco.sequence` module contains components for implemention of sequence
+types, such as containers.
+
+## Extents
+
+`extent` is a type constructor for storage of arrays of objects in a contiguous
+memory region, where elements are prefixed by a header that keeps track of the
+number of elements stored and the number of elements that can be stored without
+a reallocation. Additional metadata can also be stored in the header.
+`extent` models `std::contiguous_range` and owns the element it stores. It
+supports resizing of the memory region and provides automatic growth when
+inserting elements.
+
+`extent` can be customized for many different use cases.
+
+The type parameter `Size` is the type
+used to store size and capacity in the header. By using a smaller type when the
+maximum number of elements is small the header size can be reduced. By default
+it is equivalent to `std::ptrdiff_t`.
+
+The type parameter `Metadata` is the type of an optional extra field in the
+header. By default it is `std::monostate` and no bytes are used for it in the
+header. It can be used for optimizing element operations when the data encoding
+requires it.
+
+The value parameter `copier` is an object with member functions `copy`, `move`,
+`move_backward`, and `destroy` that is used to copy, move and delete
+elements when necessary. By default it is `default_array_copy`, which provides
+efficient and exception-safe range operations on (possibly) uninitialized arrays
+of its value type.
+
+The value parameter `ga` is the growth algorithm used when more space is needed.
+`default_array_growth` is a function object that takes a non-negative capacity
+and a lower bound. It returns `capacity + max(capacity / 2, lower_bound)`, which
+gives an allocator-friendly growth factor that guarantees amortized constant
+time stack operations.
+
+The value parameter `alloc` is the allocator object used to manage the owned
+memory. `default_array_alloc` uses `malloc_allocator`.
+
 # Memory
 
 The `eco.memory` module contains components for raw memory management. These are
