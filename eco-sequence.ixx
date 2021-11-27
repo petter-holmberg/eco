@@ -1,6 +1,5 @@
 module;
 
-#include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <iterator>
@@ -9,9 +8,8 @@ module;
 #include <utility>
 #include <variant>
 
-import eco.memory;
-
-export module eco.sequence;
+export module eco:sequence;
+import :memory;
 
 namespace eco {
 
@@ -292,7 +290,7 @@ private:
       alloc.deallocate({reinterpret_cast<void*>(old_start - header_byte_size()), old_byte_size});
     }
   }
-  
+
   void
   move(Size n_new_elements)
   // [[ pre: n_new_elements >= 0 ]]

@@ -6,7 +6,7 @@ module;
 #include <functional>
 #include <ranges>
 
-export module eco.memory;
+export module eco:memory;
 
 namespace eco {
 
