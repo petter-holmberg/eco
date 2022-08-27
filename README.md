@@ -14,7 +14,7 @@ types, such as containers.
 memory region, where elements are prefixed by a header that keeps track of the
 number of elements stored and the number of elements that can be stored without
 a reallocation. Additional metadata can also be stored in the header.
-`extent` models `std::contiguous_range` and owns the element it stores. It
+`extent` models `std::contiguous_range` and owns the elements it stores. It
 supports resizing of the memory region and provides automatic growth when
 inserting elements.
 

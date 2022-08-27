@@ -145,17 +145,17 @@ public:
   }
 
   [[nodiscard]] auto
-  reallocate(memory_view m, ssize_type_t<memory_view> n) noexcept -> memory_view
+  reallocate(memory_view mem, ssize_type_t<memory_view> n) noexcept -> memory_view
   {
     if (n <= 0) {
       return {};
     }
-    auto first{std::realloc(m.first, n)};
+    auto first{std::realloc(mem.first, n)};
     if (first != nullptr) {
-      m.first = first;
-      m.size = n;
+      mem.first = first;
+      mem.size = n;
     }
-    return m;
+    return mem;
   }
 
   auto deallocate(memory_view mem) noexcept -> bool

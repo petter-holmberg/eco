@@ -35,7 +35,7 @@ struct array_copier
     std::sentinel_for<S, I> &&
     std::constructible_from<T, std::iter_reference_t<I>>
   constexpr auto
-  copy(I const f, S const l, T* dst) -> T*
+  copy(I const f, S const l, T* dst) const -> T*
   {
     if constexpr (std::is_trivial_v<T>) {
       return std::copy(f, l, dst);
@@ -45,7 +45,7 @@ struct array_copier
   }
 
   constexpr auto
-  move(T* f, T* l, T* dst) -> T*
+  move(T* f, T* l, T* dst) const -> T*
   {
     if constexpr (std::is_trivial_v<T>) {
       return std::copy(f, l, dst);
@@ -55,7 +55,7 @@ struct array_copier
   }
 
   constexpr auto
-  move_backward(T* f, T* l, T* dst) -> T*
+  move_backward(T* f, T* l, T* dst) const -> T*
   {
     if constexpr (std::is_trivial_v<T>) {
       return std::copy_backward(f, l, dst);
@@ -69,7 +69,7 @@ struct array_copier
   }
 
   constexpr void
-  destroy(T* f, T* l)
+  destroy(T* f, T* l) const
   {
     if constexpr (!std::is_trivial_v<T>) {
       std::destroy(std::reverse_iterator{l}, std::reverse_iterator{f});
@@ -107,7 +107,7 @@ export template
 >
 class extent
 {
-  T* start;
+  T* start = nullptr;
 
   struct header_t
   {
@@ -170,17 +170,17 @@ class extent
 
   [[nodiscard]] constexpr auto
   metadata_ref() noexcept -> Metadata&
+    requires !std::same_as<Metadata, std::monostate>
   // [[ pre: start ]]
   {
-    static_assert(!std::same_as<Metadata, std::monostate>);
     return header()->metadata;
   }
 
   [[nodiscard]] constexpr auto
   // [[ pre: start ]]
   metadata_ref() const noexcept -> Metadata const&
+    requires !std::same_as<Metadata, std::monostate>
   {
-    static_assert(!std::same_as<Metadata, std::monostate>);
     return header()->metadata;
   }
 
@@ -189,7 +189,7 @@ public:
   [[nodiscard]] explicit constexpr
   operator bool() const noexcept
   {
-    return start;
+    return start && size_ref();
   }
 
   [[nodiscard]] constexpr auto
@@ -214,12 +214,6 @@ public:
   end() const noexcept -> T const*
   {
     return (start ? start + size_ref() : nullptr);
-  }
-
-  [[nodiscard]] constexpr auto
-  empty() const noexcept -> bool
-  {
-    return !start;
   }
 
   [[nodiscard]] constexpr auto
@@ -249,15 +243,15 @@ public:
 
   [[nodiscard]] constexpr auto
   metadata() noexcept -> Metadata*
+    requires !std::same_as<Metadata, std::monostate>
   {
-    static_assert(!std::same_as<Metadata, std::monostate>);
     return (start ? &metadata_ref() : nullptr);
   }
 
   [[nodiscard]] constexpr auto
   metadata() const noexcept -> Metadata const*
+    requires !std::same_as<Metadata, std::monostate>
   {
-    static_assert(!std::same_as<Metadata, std::monostate>);
     return (start ? &metadata_ref() : nullptr);
   }
 
@@ -287,7 +281,7 @@ private:
     auto const old_byte_size{allocated_byte_size()};
     auto old_start{std::exchange(start, new_start)};
     if (old_start) {
-      alloc.deallocate({reinterpret_cast<void*>(old_start - header_byte_size()), old_byte_size});
+      alloc.deallocate({reinterpret_cast<void*>(reinterpret_cast<std::byte*>(old_start) - header_byte_size()), old_byte_size});
     }
   }
 
@@ -325,33 +319,36 @@ public:
   [[nodiscard]] constexpr
   extent() = default;
 
-  [[nodiscard]] explicit
+  [[nodiscard]] explicit constexpr
   extent(Size capacity)
-    : start{construct(capacity)}
-  {}
-
-  [[nodiscard]]
-  extent(extent const& x)
   {
-    static_assert(std::indirectly_copyable<T*, T*>);
+    start = construct(capacity);
+  }
+
+  [[nodiscard]] constexpr
+  extent(extent const& x)
+    requires std::indirectly_copyable<T*, T*>
+  {
     if (x.start) {
       start = x.construct(x.size());
       copier.copy(x.begin(), x.end(), start);
       size_ref() = x.size_ref();
-      metadata_ref() = x.metadata_ref();
+      if constexpr (!std::same_as<Metadata, std::monostate>) {
+        metadata_ref() = x.metadata_ref();
+      }
     }
   }
 
-  void
+  constexpr void
   swap(extent& x)
   {
     std::swap(start, x.start);
   }
 
-  auto
+  constexpr auto
   operator=(extent const& x) -> extent&
+    requires std::indirectly_copyable<T*, T*>
   {
-    static_assert(std::indirectly_copyable<T*, T*>);
     if (capacity() < x.size()) { // Strong exception guarantee
       // [[ assert: this != &x ]]
       auto temp{x};
@@ -360,7 +357,9 @@ public:
     } else if (start && &x != this) { // Basic exception guarantee
       copier.destroy(begin(), begin() + size_ref());
       size_ref() = 0;
-      metadata_ref() = x.metadata_ref();
+      if constexpr (!std::same_as<Metadata, std::monostate>) {
+        metadata_ref() = x.metadata_ref();
+      }
       if (x.start) {
         copier.copy(x.begin(), x.begin() + x.size_ref(), begin());
       }
@@ -377,53 +376,57 @@ public:
   constexpr auto
   operator=(extent&& x) noexcept -> extent&
   {
-    swap(x);
+    auto* temp = x.start;
+    x.start = nullptr;
+    assign(nullptr);
+    start = temp;
     return *this;
   }
 
-  [[nodiscard]]
-  friend constexpr auto operator==(extent const& x, extent const& y) -> bool
+  [[nodiscard]] friend constexpr auto
+  operator==(extent const& x, extent const& y) -> bool
+    requires std::indirectly_comparable<T const*, T const*, std::ranges::equal_to>
   {
-    static_assert(std::indirectly_comparable<T const*, T const*, std::ranges::equal_to>);
     return std::equal(x.begin(), x.end(), y.begin(), y.end());
   }
 
   [[nodiscard]] friend constexpr auto
   operator!=(extent const& x, extent const& y) -> bool
+    requires std::indirectly_comparable<T const*, T const*, std::ranges::equal_to>
   {
-    static_assert(std::indirectly_comparable<T const*, T const*, std::ranges::equal_to>);
     return !(x == y);
   }
 
   [[nodiscard]] friend constexpr auto
   operator<(extent const& x, extent const& y) -> bool
+    requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
-    static_assert(std::indirect_strict_weak_order<std::ranges::less, T const*>);
     return std::lexicographical_compare(x.begin(), x.end(), y.begin(), y.end());
   }
 
   [[nodiscard]] friend constexpr auto
   operator>=(extent const& x, extent const& y) -> bool
+    requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
-    static_assert(std::indirect_strict_weak_order<std::ranges::less, T const*>);
     return !(x < y);
   }
 
   [[nodiscard]] friend constexpr auto
   operator>(extent const& x, extent const& y) -> bool
+    requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
-    static_assert(std::indirect_strict_weak_order<std::ranges::less, T const*>);
     return (y < x);
   }
 
   [[nodiscard]] friend constexpr auto
   operator<=(extent const& x, extent const& y) -> bool
+    requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
-    static_assert(std::indirect_strict_weak_order<std::ranges::less, T const*>);
     return !(y < x);
   }
 
-  void adjust_unused_capacity(Size n)
+  constexpr void
+  adjust_unused_capacity(Size n)
   // [[ pre: n => 0 ]]
   // [[ post: unused_capacity() == n ]]
   {
@@ -433,7 +436,9 @@ public:
       copier.move(begin(), end(), temp.start);
       if (start) {
         temp.size_ref() = size_ref();
-        temp.metadata_ref() = metadata_ref();
+        if constexpr (!std::same_as<Metadata, std::monostate>) {
+          temp.metadata_ref() = metadata_ref();
+        }
       }
       swap(temp);
     }
@@ -443,6 +448,7 @@ public:
     requires std::constructible_from<T, Args...>
   constexpr auto
   push_back(Args &&...args) -> T&
+  // [[ post: !empty() ]]
   {
     if (unused_capacity() == 0) {
       adjust_unused_capacity(1);
@@ -454,15 +460,15 @@ public:
   }
 
   constexpr void
-  pop_back()
-  // [[ pre: size() > 0 ]]
+  pop_back() noexcept
+  // [[ pre: !empty() ]]
   {
     --size_ref();
     copier.destroy(end(), end() + 1);
   }
 
   template <typename Writer>
-  auto
+  constexpr auto
   insert_space(T* insertion_point, Size n_elements, Writer writer) -> T*
   {
     if (n_elements <= 0) {
@@ -472,7 +478,7 @@ public:
     if (unused_capacity() < n_elements) {
       move(n_elements, offset);
     } else {
-      auto new_end{ end() + n_elements };
+      auto new_end{end() + n_elements};
       copier.move_backward(start + offset, end(), new_end);
     }
     // [[ assert: start ]]
@@ -482,14 +488,14 @@ public:
   }
 
   template <typename Writer>
-  auto
+  constexpr auto
   insert_space(Size n_elements, Writer writer) -> T*
   {
     if (n_elements <= 0) {
        return end();
     }
     if (unused_capacity() < n_elements) {
-      reallocate(n_elements);
+      alloc.reallocate({reinterpret_cast<void*>(reinterpret_cast<std::byte*>(start) - header_byte_size()), allocated_byte_size()}, n_elements);
     }
     auto insertion_point{end()};
     writer(insertion_point);
@@ -497,7 +503,7 @@ public:
     return insertion_point;
   }
 
-  void
+  constexpr void
   erase_space(T* first, Size n_elements)
   // [[ pre: n_elements <= size() ]]
   {
