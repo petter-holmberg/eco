@@ -3,6 +3,35 @@ eco
 
 eco is a generic C++ library of efficient components.
 
+# Containers
+
+The `eco.container` module contains containers.
+
+`array` is a type constructor for dynamic arrays, similar to `std::vector`, but with some key differences:
+
+- The local storage of `array` is a single pointer, making storage of nested arrays where many of the inner arrays are empty more efficient.
+- Fewer member types and member functions, leveraging the capabilities of the C++20 ranges library instead.
+- Only designed to store value types and free of specializations with custom semantics, like `std::vector<bool>`.
+- The growth algorithm is configurable and by default grows the reserve area by a factor of 1.5, which saves memory and when used with many allocators prevents it from reusing previously allocated memory blocks.
+- Support for custom allocators (as defined by concepts in this library) but without support for storing stateful allocators in the `array` itself, which makes it easier to reason about ownership semantics.
+
+`array<T>` models `std::ranges::contiguous_range<T>`.
+
+The type parameter `T` is the type of objects stored in the `array`.
+
+The value parameter `ga` is the growth algorithm used when more space is needed.
+`default_array_growth` is a function object that takes a non-negative capacity
+and a lower bound. It returns `capacity + max(capacity / 2, lower_bound)`, which
+gives an allocator-friendly growth factor that guarantees amortized constant
+time stack operations.
+
+The value parameter `alloc` is the allocator object used to manage the owned
+memory. `default_array_alloc` uses `malloc_allocator`.
+
+The member type `value_type` is the type of objects stored in the `array`.
+
+The member type `size_type` is a signed type large enough to represent the maximum possible size of the `array`.
+
 # Sequence
 
 The `eco.sequence` module contains components for implemention of sequence
@@ -20,6 +49,8 @@ inserting elements.
 
 `extent` can be customized for many different use cases.
 
+The type parameter `T` is the type of objects stored in the memory region.
+
 The type parameter `Size` is the type
 used to store size and capacity in the header. By using a smaller type when the
 maximum number of elements is small the header size can be reduced. By default
@@ -36,11 +67,8 @@ elements when necessary. By default it is `default_array_copy`, which provides
 efficient and exception-safe range operations on (possibly) uninitialized arrays
 of its value type.
 
-The value parameter `ga` is the growth algorithm used when more space is needed.
-`default_array_growth` is a function object that takes a non-negative capacity
-and a lower bound. It returns `capacity + max(capacity / 2, lower_bound)`, which
-gives an allocator-friendly growth factor that guarantees amortized constant
-time stack operations.
+The value parameter `ga` is the growth algorithm used when more space is needed. By default it is
+`default_array_growth`.
 
 The value parameter `alloc` is the allocator object used to manage the owned
 memory. `default_array_alloc` uses `malloc_allocator`.
