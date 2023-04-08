@@ -116,3 +116,12 @@ allocated with this object or not.
 to manage dynamic memory. It models `deallocatable_allocator` and
 `reallocatable_allocator`. It is the type of the default allocators used in eco
 containers.
+
+`arena_allocator` is a type constuctor for allocators that pre-allocate a given
+number of bytes on construction, using a given `deallocatable_allocator`.
+`allocate` allocates from the beginning of previously unused memory in this
+arena, and `deallocate` does nothing. The allocated arena will be deallocated
+on destruction.
+This allocator is useful for situations where allocation and deallocation must
+be as fast as possible and the total amount of memory that will be used is
+known beforehand.

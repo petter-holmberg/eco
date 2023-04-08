@@ -168,6 +168,48 @@ public:
 static_assert(deallocatable_allocator<malloc_allocator>);
 static_assert(reallocatable_allocator<malloc_allocator>);
 
+export template <allocator A = malloc_allocator>
+class arena_allocator
+{
+  A alloc;
+  memory_view arena;
+  std::byte* pos;
+
+public:
+  explicit arena_allocator(A alloc, ssize_type_t<memory_view> n) noexcept
+    : arena{alloc.allocate(n)}
+    , pos{arena.begin()}
+  {}
+
+  ~arena_allocator()
+  {
+    alloc.deallocate(arena);
+  }
+
+  arena_allocator(arena_allocator const&) = delete;
+
+  arena_allocator& operator=(arena_allocator const&) = delete;
+
+  [[nodiscard]] auto
+  allocate(ssize_type_t<memory_view> n) noexcept -> memory_view
+  // [[ pre: n <= arena.end() - pos ]]
+  {
+    if (n <= 0) {
+      return {};
+    }
+    memory_view allocated{pos, n};
+    pos += n;
+    return allocated;
+  }
+
+  auto deallocate(memory_view) noexcept -> bool
+  {
+    return true;
+  }
+};
+
+static_assert(deallocatable_allocator<arena_allocator<malloc_allocator>>);
+
 } // namespace cpp20
 
 } // namespace eco
