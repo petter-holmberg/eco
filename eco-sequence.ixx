@@ -289,7 +289,7 @@ private:
   move(Size n_new_elements)
   // [[ pre: n_new_elements >= 0 ]]
   {
-    auto new_start{new_extent_start(std::invoke(ga, capacity(), n_new_elements))};
+    auto new_start{construct(std::invoke(ga, capacity(), n_new_elements))};
     if (start) {
       copier.move(begin(), end(), new_start);
     }
@@ -492,10 +492,10 @@ public:
   insert_space(Size n_elements, Writer writer) -> T*
   {
     if (n_elements <= 0) {
-       return end();
+      return end();
     }
     if (unused_capacity() < n_elements) {
-      alloc.reallocate({reinterpret_cast<void*>(reinterpret_cast<std::byte*>(start) - header_byte_size()), allocated_byte_size()}, n_elements);
+      move(n_elements);
     }
     auto insertion_point{end()};
     writer(insertion_point);
