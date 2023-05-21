@@ -3,11 +3,23 @@ eco
 
 eco is a generic C++ library of efficient components.
 
+# Algorithms
+
+The `eco.algorithm` module contains algorithms.
+
+## List algorithms
+
+`reverse_append` takes a forward range, a `std::forward_iterator` to the head of a list, and a `forward_linker`. It appends
+the forward range in reversed element order to the head, effectively making the last element of the original range the new head.
+
+Example: `[1 2 3 4] <reverse_append> [5 6 7 8] -> [4 3 2 1 5 6 7 8]`
+
 # Containers
 
 The `eco.container` module contains containers.
 
-`array` is a type constructor for dynamic arrays, similar to `std::vector`, but with some key differences:
+`array` is a type constructor for dynamic arrays, similar to `std::vector`,
+but with some key differences:
 
 - The local storage of `array` is a single pointer, making storage of nested arrays where many of the inner arrays are empty more efficient.
 - Fewer member types and member functions, leveraging the capabilities of the C++20 ranges library instead.
@@ -30,7 +42,8 @@ memory. `default_array_alloc` uses `malloc_allocator`.
 
 The member type `value_type` is the type of objects stored in the `array`.
 
-The member type `size_type` is a signed type large enough to represent the maximum possible size of the `array`.
+The member type `size_type` is a signed type large enough to represent
+the maximum possible size of the `array`.
 
 # Sequence
 
@@ -67,11 +80,39 @@ elements when necessary. By default it is `default_array_copy`, which provides
 efficient and exception-safe range operations on (possibly) uninitialized arrays
 of its value type.
 
-The value parameter `ga` is the growth algorithm used when more space is needed. By default it is
-`default_array_growth`.
+The value parameter `ga` is the growth algorithm used when more space is needed.
+By default it is `default_array_growth`.
 
 The value parameter `alloc` is the allocator object used to manage the owned
 memory. `default_array_alloc` uses `malloc_allocator`.
+
+## List pools
+
+`forward_list_pool` is a type constructor for a pool of singly linked list nodes,
+stored in a contiguous memory region. It uses `extent` to store the list nodes.
+The lifetime of elements in the list nodes is bound to the lifetime of the pool,
+not individual lists in it.
+
+`forward_list_pool` can be customized for many different use cases.
+
+The type parameter `T` is the type of objects stored in the elements of the pool.
+
+The type parameter `Size` is the type used to store links in the list nodes.
+Using a type not larger than required to store the maximum number of nodes in
+the pool minimizes the memory footprint and makes the pool more cache-friendly.
+
+`list_pool` is a type constructor for a pool of doubly linked list nodes,
+stored in a contiguous memory region. It uses `extent` to store the list nodes.
+The lifetime of elements in the list nodes is bound to the lifetime of the pool,
+not individual lists in it.
+
+`list_pool` can be customized for many different use cases.
+
+The type parameter `T` is the type of objects stored in the elements of the pool.
+
+The type parameter `Size` is the type used to store links in the list nodes.
+Using a type not larger than required to store the maximum number of nodes in
+the pool minimizes the memory footprint and makes the pool more cache-friendly.
 
 # Memory
 
@@ -118,7 +159,8 @@ to manage dynamic memory. It models `deallocatable_allocator` and
 containers.
 
 `arena_allocator` is a type constuctor for allocators that pre-allocate a given
-number of bytes on construction, using a given `deallocatable_allocator`.
+number of bytes on construction, using a given `deallocatable_allocator`. It
+models `deallocatable_allocator`.
 `allocate` allocates from the beginning of previously unused memory in this
 arena, and `deallocate` does nothing. The allocated arena will be deallocated
 on destruction.
