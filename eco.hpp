@@ -1,5 +1,6 @@
 /*module;*/
 
+#include <bit>
 #include <concepts>
 #include <cstddef>
 #include <cstdlib>
@@ -18,7 +19,7 @@ namespace eco::inline cpp20 {
 template <typename T>
 struct ssize_type_traits
 {
-  using type = T::ssize_type;
+  using type = typename T::ssize_type;
 };
 
 /*export*/ template <typename T>
@@ -99,36 +100,42 @@ operator<=(memory_view x, memory_view y) noexcept -> bool
 
 static_assert(std::totally_ordered<memory_view>);
 
-/*export*/ template <typename A>
+template <typename T>
+concept boolean_testable =
+  std::convertible_to<T, bool> &&
+  requires (T&& b) {
+    { !std::forward<T>(b) } -> std::convertible_to<bool>;
+  };
+
+/*export*/ template <typename T>
 concept allocator =
-  requires(A a, ssize_type_t<memory_view> n)
+  requires(T a, ssize_type_t<memory_view> n)
   {
-    { a.allocate(n) } noexcept-> std::same_as<memory_view>;
+    { a.allocate(n) } -> std::same_as<memory_view>;
   };
 
-/*export*/ template <typename A>
+/*export*/ template <typename T>
 concept deallocatable_allocator =
-  allocator<A> &&
-  requires(A& a, memory_view mem)
+  allocator<T> &&
+  requires(T& a, memory_view mem)
   {
-    { a.deallocate(mem) }
-    noexcept->std::same_as<bool>;
+    { a.deallocate(mem) } noexcept -> boolean_testable;
   };
 
-/*export*/ template <typename A>
+/*export*/ template <typename T>
 concept reallocatable_allocator =
-  allocator<A> &&
-  requires(A a, memory_view mem, ssize_type_t<memory_view> n)
+  allocator<T> &&
+  requires(T a, memory_view mem, ssize_type_t<memory_view> n)
   {
-    { a.reallocate(mem, n) } noexcept -> std::same_as<memory_view>;
+    { a.reallocate(mem, n) } -> std::same_as<memory_view>;
   };
 
-/*export*/ template <typename A>
+/*export*/ template <typename T>
 concept ownership_aware_allocator =
-  allocator<A> &&
-  requires(A const& a, memory_view mem)
+  allocator<T> &&
+  requires(T const& a, memory_view mem)
   {
-    { a.is_owner(mem) } noexcept -> std::same_as<bool>;
+    { a.is_owner(mem) } noexcept -> boolean_testable;
   };
 
 /*export*/ class malloc_allocator
@@ -179,7 +186,7 @@ class arena_allocator
   std::byte* pos;
 
 public:
-  explicit arena_allocator(A alloc, ssize_type_t<memory_view> n) noexcept
+  explicit arena_allocator(A alloc, ssize_type_t<memory_view> n)
     : arena{alloc.allocate(n)}
     , pos{arena.begin()}
   {}
@@ -194,7 +201,7 @@ public:
   arena_allocator& operator=(arena_allocator const&) = delete;
 
   [[nodiscard]] auto
-  allocate(ssize_type_t<memory_view> n) noexcept -> memory_view
+  allocate(ssize_type_t<memory_view> n) -> memory_view
   // [[ pre: n <= arena.end() - pos ]]
   {
     if (n <= 0) {
@@ -216,7 +223,7 @@ static_assert(deallocatable_allocator<arena_allocator<malloc_allocator>>);
 template <typename T>
 struct value_type_traits
 {
-  using type = T::value_type;
+  using type = typename T::value_type;
 };
 
 /*export*/ template <typename T>
@@ -383,7 +390,6 @@ class extent
   }
 
 public:
-
   [[nodiscard]] explicit constexpr
   operator bool() const noexcept
   {
@@ -508,7 +514,6 @@ private:
   }
 
 public:
-
   ~extent()
   {
     assign(nullptr);
@@ -646,7 +651,7 @@ public:
     requires std::constructible_from<T, Args...>
   constexpr auto
   push_back(Args &&...args) -> T&
-  // [[ post: !empty() ]]
+  // [[ post: bool{*this} ]]
   {
     if (unused_capacity() == 0) {
       adjust_unused_capacity(1);
@@ -659,7 +664,7 @@ public:
 
   constexpr void
   pop_back() noexcept
-  // [[ pre: !empty() ]]
+  // [[ pre: bool{*this} ]]
   {
     --size_ref();
     copier.destroy(end(), end() + 1);
@@ -728,7 +733,7 @@ static_assert(std::ranges::contiguous_range<extent<int>>);
 template <typename T>
 struct iterator_type_traits
 {
-  using type = T::iterator_type;
+  using type = typename T::iterator_type;
 };
 
 /*export*/ template <typename T>
@@ -783,13 +788,7 @@ public:
   [[nodiscard]] constexpr auto
   limit() const noexcept -> ssize_type
   {
-    return std::numeric_limits<Size>::min();
-  }
-
-  [[nodiscard]] constexpr auto
-  is_limit(T x) const noexcept -> bool
-  {
-    return x < 0;
+    return Size{-1};
   }
 
   constexpr
@@ -848,6 +847,12 @@ private:
     return ssize_type(pool.size() - 1);
   }
 
+  constexpr void
+  set_next(ssize_type x, ssize_type y) noexcept
+  {
+    node(x).next = y - x;
+  }
+
 public:
   [[nodiscard]] constexpr auto
   value(ssize_type x) noexcept-> T&
@@ -875,21 +880,22 @@ public:
     if (free_list_head() == limit()) {
       new_list = new_node();
     } else {
-      free_list_head() += next(free_list_head());
+      free_list_head() = next(free_list_head());
     }
 
-    node(new_list).next = tail - new_list;
+    set_next(new_list, tail);
     value(new_list) = val;
     return new_list;
   }
 
-  [[nodiscard]] constexpr auto
+  constexpr auto
   free_node(ssize_type x) noexcept -> ssize_type
+  // [[ pre: "x is a list head" ]]
   {
-    auto cdr = x + next(x);
-    node(x).next = free_list_head() - x;
+    auto tail = next(x);
+    set_next(x, free_list_head());
     free_list_head() = x;
-    return cdr;
+    return tail;
   }
 
   struct next_linker;
@@ -954,9 +960,9 @@ public:
   {
     using iterator_type = iterator;
 
-    void operator()(iterator x, iterator y)
+    void operator()(iterator i, iterator j)
     {
-      x.node->next = static_cast<Size>(y.node - x.node);
+      i.node->next = static_cast<Size>(j.node - i.node);
     }
   };
 
@@ -995,13 +1001,7 @@ public:
   [[nodiscard]] constexpr auto
   limit() const noexcept -> ssize_type
   {
-    return std::numeric_limits<Size>::min();
-  }
-
-  [[nodiscard]] constexpr auto
-  is_limit(T x) const noexcept -> bool
-  {
-    return x < 0;
+    return Size{-1};
   }
 
   constexpr
@@ -1061,6 +1061,18 @@ private:
     return ssize_type(pool.size() - 1);
   }
 
+  constexpr void
+  set_prev(ssize_type x, ssize_type y) noexcept
+  {
+    node(x).prev = y - x;
+  }
+
+  constexpr void
+  set_next(ssize_type x, ssize_type y) noexcept
+  {
+    node(x).next = y - x;
+  }
+
 public:
   [[nodiscard]] constexpr auto
   value(ssize_type x) noexcept-> T&
@@ -1090,29 +1102,50 @@ public:
   allocate_node(T const& val, ssize_type tail) -> ssize_type
   {
     auto new_list = free_list_head();
-
     if (free_list_head() == limit()) {
       new_list = new_node();
     } else {
-      free_list_head() += next(free_list_head());
+      free_list_head() = next(free_list_head());
     }
-
-    node(new_list).prev = limit();
-    node(new_list).next = tail - new_list;
+    set_prev(new_list, limit());
+    set_next(new_list, tail);
     value(new_list) = val;
     if (tail != limit()) {
-      node(tail).prev = new_list - tail;
+      set_prev(tail, new_list);
     }
     return new_list;
   }
 
-  [[nodiscard]] constexpr auto
+  constexpr auto
   free_node(ssize_type x) noexcept -> ssize_type
   {
-    auto cdr = x + next(x);
-    node(x).next = free_list_head() - x;
+    auto previous = prev(x);
+    if (previous != limit()) {
+      set_next(previous, limit());
+    }
+    auto tail = next(x);
+    if (tail != limit()) {
+      set_prev(tail, limit());
+    }
+    set_next(x, free_list_head());
     free_list_head() = x;
-    return cdr;
+    return tail;
+  }
+
+  constexpr void
+  unlink_node(ssize_type x) noexcept
+  // [[ pre: prev(x) != limit() && next(x) != limit ]]
+  {
+    node(prev(x)).next += node(x).next;
+    node(next(x)).prev += node(x).prev;
+  }
+
+  constexpr void
+  relink_node(ssize_type x) noexcept
+  // [[ pre: prev(x) != limit() && next(x) != limit ]]
+  {
+    node(prev(x)).next -= node(x).next;
+    node(next(x)).prev -= node(x).prev;
   }
 
   struct prev_linker;
@@ -1196,9 +1229,10 @@ public:
   {
     using iterator_type = iterator;
 
-    void operator()(iterator x, iterator y)
+    constexpr
+    void operator()(iterator i, iterator j) noexcept
     {
-      x.node->prev = static_cast<Size>(y.node - x.node);
+      i.node->prev = static_cast<Size>(j.node - i.node);
     }
   };
 
@@ -1206,9 +1240,10 @@ public:
   {
     using iterator_type = iterator;
 
-    void operator()(iterator x, iterator y)
+    constexpr void
+    operator()(iterator i, iterator j) noexcept
     {
-      x.node->next = static_cast<Size>(y.node - x.node);
+      i.node->next = static_cast<Size>(j.node - i.node);
     }
   };
 
@@ -1216,28 +1251,15 @@ public:
   {
     using iterator_type = iterator;
 
-    void operator()(iterator x, iterator y)
+    constexpr void
+    operator()(iterator i, iterator j) noexcept
     {
-      x.node->prev = static_cast<Size>(y.node - x.node);
-      x.node->next = static_cast<Size>(y.node - x.node);
+      i.node->prev = static_cast<Size>(j.node - i.node);
+      i.node->next = static_cast<Size>(j.node - i.node);
     }
   };
 
   using iterator_type = iterator;
-
-  constexpr void
-  unlink_node(ssize_type x) noexcept
-  {
-    node(prev(x)).next += node(x).next;
-    node(next(x)).prev += node(x).prev;
-  }
-
-  constexpr void
-  relink_node(ssize_type x) noexcept
-  {
-    node(prev(x)).next -= node(x).next;
-    node(next(x)).prev -= node(x).prev;
-  }
 };
 
 static_assert(std::bidirectional_iterator<list_pool<int, int>::iterator>);
@@ -1261,10 +1283,10 @@ class array
 {
 public:
   using value_type = T;
-  using size_type = ssize_type_t<memory_view>;
+  using ssize_type = ssize_type_t<memory_view>;
 
 private:
-  extent<T, size_type, std::monostate, default_array_copy<T>, ga, alloc> header;
+  extent<T, ssize_type, std::monostate, default_array_copy<T>, ga, alloc> header;
 
   template <typename I, typename S>
   struct writer
@@ -1277,7 +1299,7 @@ private:
       : first{f}, last{l}
     {}
 
-    void
+    constexpr void
     operator()(T* dst)
       ///requires std::indirectly_copyable<T*, T*>
     {
@@ -1292,12 +1314,11 @@ private:
   }
 
 public:
-
   [[nodiscard]] constexpr
-  array() = default;
+  array() noexcept = default;
 
   [[nodiscard]] explicit constexpr
-  array(size_type capacity) noexcept
+  array(ssize_type capacity)
     : header{capacity}
   {}
 
@@ -1340,42 +1361,42 @@ public:
   }
 
   [[nodiscard]] friend constexpr auto
-  operator==(array const& x, array const& y) -> bool
+  operator==(array const& x, array const& y) noexcept -> bool
     requires std::indirectly_comparable<T const*, T const*, std::ranges::equal_to>
   {
     return x.header == y.header;
   }
 
   [[nodiscard]] friend constexpr auto
-  operator!=(array const& x, array const& y) -> bool
+  operator!=(array const& x, array const& y) noexcept -> bool
     requires std::indirectly_comparable<T const*, T const*, std::ranges::equal_to>
   {
     return x.header != y.header;
   }
 
   [[nodiscard]] friend constexpr auto
-  operator<(array const& x, array const& y) -> bool
+  operator<(array const& x, array const& y) noexcept -> bool
     requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
     return x.header < y.header;
   }
 
   [[nodiscard]] friend constexpr auto
-  operator>=(array const& x, array const& y) -> bool
+  operator>=(array const& x, array const& y) noexcept -> bool
     requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
     return x.header >= y.header;
   }
 
   [[nodiscard]] friend constexpr auto
-  operator>(array const& x, array const& y) -> bool
+  operator>(array const& x, array const& y) noexcept -> bool
     requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
     return x.header > y.header;
   }
 
   [[nodiscard]] friend constexpr auto
-  operator<=(array const& x, array const& y) -> bool
+  operator<=(array const& x, array const& y) noexcept -> bool
     requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
     return x.header <= y.header;
@@ -1394,14 +1415,14 @@ public:
   }
 
   [[nodiscard]] constexpr auto
-  operator[](size_type n) noexcept -> T&
+  operator[](ssize_type n) noexcept -> T&
   // [[ pre: n < size() ]]
   {
     return *(header.begin() + n);
   }
 
   [[nodiscard]] constexpr auto
-  operator[](size_type n) const noexcept -> T const&
+  operator[](ssize_type n) const noexcept -> T const&
   // [[ pre: n < size() ]]
   {
     return *(header.begin() + n);
@@ -1432,25 +1453,25 @@ public:
   }
 
   [[nodiscard]] constexpr auto
-  size() const noexcept -> size_type
+  size() const noexcept -> ssize_type
   {
     return header.size();
   }
 
   [[nodiscard]] constexpr auto
-  capacity() const noexcept -> size_type
+  capacity() const noexcept -> ssize_type
   {
     return header.capacity();
   }
 
   [[nodiscard]] constexpr auto
-  max_size() const noexcept -> size_type
+  max_size() const noexcept -> ssize_type
   {
-    return std::numeric_limits<size_type>::max() / sizeof(T);
+    return std::numeric_limits<ssize_type>::max() / sizeof(T);
   }
 
   constexpr void
-  reserve(size_type cap)
+  reserve(ssize_type cap)
   // [[ post: capacity() >= cap ]]
   {
     if (capacity() < cap) {
@@ -1475,14 +1496,14 @@ public:
     requires std::constructible_from<T, Args...>
   constexpr auto
   push_back(Args &&...args) -> T&
-  // [[ post: !empty() ]]
+  // [[ post: bool{*this} ]]
   {
     return header.push_back(std::forward<Args>(args)...);
   }
 
   constexpr void
   pop_back() noexcept
-  // [[ pre: !empty() ]]
+  // [[ pre: bool{*this} ]]
   {
     header.pop_back();
   }
@@ -1505,7 +1526,7 @@ public:
   constexpr auto
   insert(T const* pos, Args &&...args) -> T*
   // [[ pre axiom: "pos within [begin(), end())" ]]
-  // [[ post axiom: !empty() ]]
+  // [[ post axiom: bool{*this} ]]
   {
     auto df{pos - begin()};
     auto dm{size()};
@@ -1530,7 +1551,7 @@ public:
 
   constexpr auto
   erase(T const* pos) noexcept -> T*
-  // [[ pre: !empty() ]]
+  // [[ pre: bool{*this} ]]
   // [[ pre axiom: "pos within [begin(), end())" ]]
   // [[ post axiom: "capacity() unchanged" ]]
   {
@@ -1542,7 +1563,7 @@ public:
     requires
       std::ranges::range<R> &&
       std::same_as<T, std::ranges::range_value_t<R>>
-  constexpr auto erase(R&& range) -> T*
+  constexpr auto erase(R&& range) noexcept -> T*
   // [[ pre axiom: "range within [begin(), end())" ]]
   // [[ post axiom: "capacity() unchanged" ]]
   {
@@ -1571,6 +1592,703 @@ swap(array<T, ga, alloc>& x, array<T, ga, alloc>& y) noexcept
 {
   x.swap(y);
 }
+
+/*export*/ template <typename T>
+concept bitvector =
+  std::regular<T> &&
+  std::constructible_from<ssize_type_t<T>> &&
+  requires (T b, T const& cb, ssize_type_t<T> i) {
+    { cb.size() } -> std::same_as<ssize_type_t<T>>;
+    { cb.bitread(i) } -> boolean_testable;
+    b.bitset(i);
+    b.bitclear(i);
+    b.init();
+    { cb.rank_0(i) } -> std::same_as<ssize_type_t<T>>;
+    { cb.rank_1(i) } -> std::same_as<ssize_type_t<T>>;
+    { cb.select_0(i) } -> std::same_as<ssize_type_t<T>>;
+    { cb.select_1(i) } -> std::same_as<ssize_type_t<T>>;
+  };
+
+/*export*/ template
+<
+  typename Word = unsigned int,
+  typename Size = ssize_type_t<memory_view>
+>
+class basic_bitvector
+{
+public:
+  using ssize_type = Size;
+
+private:
+  extent<Word, ssize_type, ssize_type, default_array_copy<Word>, default_array_growth, default_array_alloc> words;
+
+  [[nodiscard]] constexpr auto
+  w() const noexcept -> unsigned char
+  {
+    return 8 * sizeof(Word);
+  }
+
+public:
+  [[nodiscard]] constexpr
+  basic_bitvector() noexcept = default;
+
+  [[nodiscard]] explicit constexpr
+  basic_bitvector(ssize_type size)
+    : words{static_cast<ssize_type>((size + (w() - 1)) / (w()))}
+  {
+    if (size == 0) return;
+    *words.metadata() = size;
+    size = words.capacity();
+    while (size != 0) {
+      words.push_back(0);
+      --size;
+    }
+  }
+
+  constexpr auto operator<=>(basic_bitvector const&) const noexcept = default;
+
+  constexpr
+  void init() noexcept
+  {}
+
+  [[nodiscard]] constexpr auto
+  size() const noexcept -> ssize_type
+  {
+    if (words) return *words.metadata(); else return 0;
+  }
+
+  [[nodiscard]] constexpr auto
+  bitread(ssize_type i) const noexcept -> bool
+  {
+    return *(words.begin() + (i / w())) >> (i % w()) & 1u;
+  }
+
+  constexpr void
+  bitset(ssize_type i) noexcept
+  {
+    *(words.begin() + (i / w())) |= (1u << (i % w()));
+  }
+
+  constexpr void
+  bitclear(ssize_type i) noexcept
+  {
+    *(words.begin() + (i / w())) &= ~(1u << (i % w()));
+  }
+
+  [[nodiscard]] constexpr auto
+  rank_0(ssize_type i) const noexcept -> ssize_type
+  {
+    return i - rank_1(i);
+  }
+
+  [[nodiscard]] constexpr auto
+  rank_1(ssize_type i) const noexcept -> ssize_type
+  {
+    auto quot = i / w();
+    auto rem = i % w();
+    ssize_type ret{};
+    auto j = 0;
+    while (j != quot) {
+      ret += std::popcount(*(words.begin() + j));
+      ++j;
+    }
+    ret += (std::popcount(*(words.begin() + j) & ((1u << rem) - 1u)));
+    return ret;
+  }
+
+  [[nodiscard]] constexpr auto
+  select_0(ssize_type i) const noexcept -> ssize_type
+  {
+    auto quot = i / w();
+    ssize_type ret{};
+    auto j = 0;
+    auto next = 0;
+    while (j != quot) {
+      next = sizeof(Word) - std::popcount(*(words.begin() + j));
+      if (ret + next > i) break;
+      ret += next;
+      ++j;
+    }
+    j *= w();
+    while (j != size()) {
+      if (!bitread(j)) ++ret;
+      if (ret > i) return j;
+      ++j;
+    }
+    return j;
+  }
+
+  [[nodiscard]] constexpr auto
+  select_1(ssize_type i) const noexcept -> ssize_type
+  {
+    auto quot = i / w();
+    ssize_type ret{};
+    auto j = 0;
+    auto next = 0;
+    while (j != quot) {
+      next = std::popcount(*(words.begin() + j));
+      if (ret + next > i) break;
+      ret += next;
+      ++j;
+    }
+    j *= w();
+    while (j != size()) {
+      if (bitread(j)) ++ret;
+      if (ret > i) return j;
+      ++j;
+    }
+    return j;
+  }
+};
+
+static_assert(bitvector<basic_bitvector<unsigned int, ssize_type_t<memory_view>>>);
+
+struct succ_0_impl
+{
+  /*export*/ template <bitvector B>
+  [[nodiscard]] constexpr auto
+  operator()(B const& b, ssize_type_t<B> i) const noexcept -> ssize_type_t<B>
+  {
+    return b.select_0(b.rank_0(i));
+  }
+};
+
+/*export*/ inline constexpr succ_0_impl succ_0{};
+
+struct succ_1_impl
+{
+  /*export*/ template <bitvector B>
+  [[nodiscard]] constexpr auto
+  operator()(B const& b, ssize_type_t<B> i) const noexcept -> ssize_type_t<B>
+  {
+    return b.select_1(b.rank_1(i));
+  }
+};
+
+/*export*/ inline constexpr succ_1_impl succ_1{};
+
+struct pred_0_impl
+{
+  /*export*/ template <bitvector B>
+  [[nodiscard]] constexpr auto
+  operator()(B const& b, ssize_type_t<B> i) const noexcept -> ssize_type_t<B>
+  {
+    return b.select_0(b.rank_0(i + 1) - 1);
+  }
+};
+
+/*export*/ inline constexpr pred_0_impl pred_0{};
+
+struct pred_1_impl
+{
+  /*export*/ template <bitvector B>
+  [[nodiscard]] constexpr auto
+  operator()(B const& b, ssize_type_t<B> i) const noexcept -> ssize_type_t<B>
+  {
+    return b.select_1(b.rank_1(i + 1) - 1);
+  }
+};
+
+/*export*/ inline constexpr pred_1_impl pred_1{};
+
+template <typename T>
+struct weight_type_traits
+{
+  using type = typename T::weight_type;
+};
+
+/*export*/ template <typename T>
+using weight_type_t = typename weight_type_traits<T>::type;
+
+/*export*/ template <typename T>
+concept bicursor =
+  std::regular<T> &&
+  std::integral<weight_type_t<T>> &&
+  requires (T cur) {
+    static_cast<bool>(cur);
+    { has_left_successor(cur) } -> boolean_testable;
+    { has_right_successor(cur) } -> boolean_testable;
+    { left_successor(cur) } -> std::same_as<T>;
+    { right_successor(cur) } -> std::same_as<T>;
+  };
+
+/*export*/ template <typename T>
+concept bidirectional_bicursor =
+  bicursor<T> &&
+  requires (T cur) {
+    { has_predecessor(cur) } -> boolean_testable;
+    { predecessor(cur) } -> std::same_as<T>;
+  };
+
+/*export*/ template <typename T>
+concept linked_bicursor =
+  bicursor<T> &&
+  requires (T cur) {
+    set_left_successor(cur, cur);
+    set_right_successor(cur, cur);
+  };
+
+template <bitvector B = basic_bitvector<unsigned int, ssize_type_t<memory_view>>>
+/*export*/ class louds
+{
+  B bits;
+
+public:
+  using ssize_type = ssize_type_t<memory_view>;
+  using index_type = ssize_type_t<memory_view>;
+
+  constexpr louds() noexcept = default;
+
+  /*export*/ template <linked_bicursor cur>
+  constexpr
+  louds(cur root, cur limit, ssize_type n)
+    : bits{2 * n + 1}
+  {
+    auto head{root};
+    auto tail{root};
+    bits.bitset(0);
+    ssize_type i{2};
+    ssize_type j{0};
+    while (head) {
+      set_right_successor(tail, left_successor(head));
+      while (has_right_successor(tail)) {
+        bits.bitset(i);
+        ++i;
+        tail = right_successor(tail);
+      }
+      ++i;
+      cur parent{head};
+      head = right_successor(head);
+      if (!bits.bitread(j + 1)) {
+        set_right_successor(parent, limit);
+        ++j;
+      }
+      ++j;
+    }
+    bits.init();
+  }
+
+  [[nodiscard]] constexpr auto
+  root() const noexcept -> ssize_type
+  {
+    return 2;
+  }
+
+  [[nodiscard]] constexpr auto
+  first_child(ssize_type v) const noexcept -> ssize_type
+  // [[ pre: !isleaf(v) ]]
+  {
+    return child(v, 0);
+  }
+
+  [[nodiscard]] constexpr auto
+  // [[ pre: !isleaf(v) ]]
+  last_child(ssize_type v) const noexcept -> ssize_type
+  {
+    return child(v, children(v) - 1);
+  }
+
+  [[nodiscard]] constexpr auto
+  next_sibling(ssize_type v) const noexcept -> ssize_type
+  // [[ pre: v != root() && v != lchild(parent(v)) ]]
+  {
+    return succ_0(bits, v) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  prev_sibling(ssize_type v) const noexcept -> ssize_type
+  // [[ pre: v != root() && v != fchild(parent(v)) ]]
+  {
+    return pred_0(bits, v - 2) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  parent(ssize_type v) const noexcept -> ssize_type
+  // [[ pre: v != root() ]]
+  {
+    const auto j = bits.select_1(bits.rank_0(v - 1));
+    return pred_0(bits, j) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  is_leaf(ssize_type v) const noexcept -> bool
+  {
+    return !bits.bitread(v);
+  }
+
+  [[nodiscard]] constexpr auto
+  nodemap(ssize_type v) const noexcept -> index_type
+  {
+    return bits.rank_0(v - 1);
+  }
+
+  [[nodiscard]] constexpr auto
+  nodeselect(index_type i) const noexcept -> ssize_type
+  {
+    return bits.select_0(i) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  children(ssize_type v) const noexcept -> ssize_type
+  {
+    return succ_0(bits, v) - v;
+  }
+
+  [[nodiscard]] constexpr auto
+  child(ssize_type v, ssize_type n) const noexcept -> ssize_type
+  // [[ pre: n >= 0 && n < children(v) ]]
+  {
+    return bits.select_0(bits.rank_1(v + n)) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  child_rank(ssize_type v) const noexcept -> ssize_type
+  // [[ pre: v != root() ]]
+  {
+    const auto j = bits.select_1(bits.rank_0(v) - 1);
+    return j - pred_0(bits, j) - 1;
+  }
+};
+
+struct lca_impl
+{
+  template <bitvector B = basic_bitvector<unsigned int, ssize_type_t<memory_view>>>
+  [[nodiscard]] constexpr auto
+  operator()(louds<B> const& t, ssize_type_t<louds<B>> u, ssize_type_t<louds<B>> v) const noexcept -> ssize_type_t<louds<B>>
+  {
+    while (u != v) {
+      if (u > v) u = t.parent(u); else v = t.parent(v);
+    }
+    return u;
+  }
+};
+
+/*export*/ inline constexpr lca_impl lca{};
+
+template <typename T>
+struct index_type_traits
+{
+  using type = typename T::index_type;
+};
+
+/*export*/ template <typename T>
+using index_type_t = typename index_type_traits<T>::type;
+
+template <bitvector B = basic_bitvector<unsigned int, ssize_type_t<memory_view>>>
+/*export*/ class binary_louds
+{
+  B bits;
+
+public:
+  using ssize_type = ssize_type_t<memory_view>;
+  using index_type = ssize_type_t<memory_view>;
+
+  constexpr binary_louds() noexcept = default;
+
+  /*export*/ template <bidirectional_bicursor cur>
+  constexpr
+  binary_louds(cur root, ssize_type n)
+    : bits{2 * n}
+  {
+    if (!root) return;
+
+    list_pool<cur, ssize_type> queue;
+    auto head = queue.allocate_node(root, queue.limit());
+    auto tail = head;
+    ssize_type i{0};
+    while (tail != queue.limit()) {
+      root = queue.value(tail);
+      if (has_left_successor(root)) {
+        head = queue.allocate_node(left_successor(root), head);
+        bits.bitset(i);
+      }
+      ++i;
+      if (has_right_successor(root)) {
+        head = queue.allocate_node(right_successor(root), head);
+        bits.bitset(i);
+      }
+      ++i;
+      auto prev = queue.prev(tail);
+      queue.free_node(tail);
+      tail = prev;
+    }
+    bits.init();
+  }
+
+  [[nodiscard]] constexpr auto
+  root() const noexcept -> ssize_type
+  {
+    return 0;
+  }
+
+  [[nodiscard]] constexpr auto
+  parent(ssize_type v) const noexcept -> ssize_type
+  // [[ pre: v != root() ]]
+  {
+    return bits.select_1(v - 1) / 2;
+  }
+
+  [[nodiscard]] constexpr auto
+  has_left_child(ssize_type v) const noexcept -> bool
+  {
+    return bits.bitread(2 * v);
+  }
+
+  [[nodiscard]] constexpr auto
+  has_right_child(ssize_type v) const noexcept -> bool
+  {
+    return bits.bitread(2 * v + 1);
+  }
+
+  [[nodiscard]] constexpr auto
+  is_leaf(ssize_type v) const noexcept -> bool
+  {
+    return !has_left_child(v) && !has_right_child(v);
+  }
+
+  [[nodiscard]] constexpr auto
+  left_child(ssize_type v) const noexcept -> index_type
+  // [[ pre: !has_left_child(v) ]]
+  {
+    return bits.rank_1(2 * v) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  // [[ pre: !has_right_child(v) ]]
+  right_child(ssize_type v) const noexcept -> index_type
+  {
+    return bits.rank_1(2 * (v + 1));
+  }
+
+  [[nodiscard]] constexpr auto
+  child_label(ssize_type v) const noexcept -> ssize_type
+  {
+    if (v == 0) return ssize_type{-1};
+    return (bits.select_1(v - 1) % 2);
+  }
+};
+
+template <bitvector B = basic_bitvector<unsigned int, ssize_type_t<memory_view>>>
+class binary_louds_cursor
+{
+  binary_louds<B> const* tree = nullptr;
+  ssize_type_t<binary_louds<B>> node{};
+
+public:
+  using weight_type = decltype(node);
+
+  [[nodiscard]] constexpr
+  binary_louds_cursor() noexcept = default;
+
+  [[nodiscard]] explicit constexpr
+  binary_louds_cursor(binary_louds<B> const& t) noexcept
+    : tree{&t}
+    , node{t.root()}
+  {}
+
+  [[nodiscard]] constexpr
+  binary_louds_cursor(binary_louds<B> const& t, weight_type v) noexcept
+    : tree{&t}
+    , node{v}
+  {}
+
+  [[nodiscard]] constexpr auto
+  operator==(binary_louds_cursor const&) const noexcept -> bool = default;
+
+  [[nodiscard]] explicit constexpr
+  operator bool() const
+  {
+    return tree != nullptr;
+  }
+
+  [[nodiscard]] friend constexpr auto
+  has_left_successor(binary_louds_cursor i) noexcept -> bool
+  // [[ pre: static_cast<bool>(i) ]]
+  {
+    return i.tree->has_left_child(i.node);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  has_right_successor(binary_louds_cursor i) noexcept -> bool
+  // [[ pre: static_cast<bool>(i) ]]
+  {
+    return i.tree->has_right_child(i.node);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  left_successor(binary_louds_cursor i) noexcept -> binary_louds_cursor<B>
+  // [[ pre: static_cast<bool>(*this) && has_left_child() ]]
+  {
+    return {*i.tree, i.tree->left_child(i.node)};
+  }
+
+  [[nodiscard]] friend constexpr auto
+  right_successor(binary_louds_cursor i) noexcept -> binary_louds_cursor<B>
+  // [[ pre: static_cast<bool>(i) && has_right_child() ]]
+  {
+    return {*i.tree, i.tree->right_child(i.node)};
+  }
+
+  [[nodiscard]] friend constexpr auto
+  has_predecessor(binary_louds_cursor i) noexcept -> bool
+  // [[ pre: static_cast<bool>(i) ]]
+  {
+    return i.node != i.tree->root();
+  }
+
+  [[nodiscard]] friend constexpr auto
+  predecessor(binary_louds_cursor i) noexcept -> binary_louds_cursor<B>
+  // [[ pre: static_cast<bool>(i) && has_parent() ]]
+  {
+    return {*i.tree, i.tree->parent(i.node)};
+  }
+
+  [[nodiscard]] constexpr auto
+  is_left_successor() noexcept -> bool
+  {
+    return tree->child_label(node) == 0;
+  }
+
+  [[nodiscard]] constexpr auto
+  is_right_successor() noexcept -> bool
+  {
+    return tree->child_label(node) == 1;
+  }
+};
+
+static_assert(eco::bidirectional_bicursor<binary_louds_cursor<basic_bitvector<unsigned int, ssize_type_t<memory_view>>>>);
+
+/*export*/ enum class df_visit
+{
+  pre,
+  in,
+  post
+};
+
+struct is_left_successor_impl
+{
+  /*export*/ template <bidirectional_bicursor C>
+  [[nodiscard]] constexpr auto
+  operator()(C cur) const -> bool
+  //[[ pre: has_parent(cur) ]]
+  {
+    auto pred = predecessor(cur);
+    return has_left_successor(pred) && left_successor(pred) == cur;
+  }
+
+  /*export*/ template <bitvector B>
+  [[nodiscard]] constexpr auto
+  operator()(binary_louds_cursor<B> cur) const -> bool
+  {
+    return cur.is_left_successor();
+  }
+};
+
+/*export*/ inline constexpr is_left_successor_impl is_left_successor{};
+
+struct is_right_successor_impl
+{
+  /*export*/ template <bidirectional_bicursor C>
+  [[nodiscard]] constexpr auto
+  operator()(C cur) const -> bool
+  //[[ pre: has_parent(c) ]]
+  {
+    auto pred = predecessor(cur);
+    return has_right_successor(pred) && right_successor(pred) == cur;
+  }
+
+  /*export*/ template <bitvector B>
+  [[nodiscard]] constexpr auto
+  operator()(binary_louds_cursor<B> cur) const -> bool
+  {
+    return cur.is_right_successor();
+  }
+};
+
+/*export*/ inline constexpr is_right_successor_impl is_right_successor{};
+
+struct tree_traverse_step_impl
+{
+  /*export*/ template <bidirectional_bicursor C>
+  constexpr auto
+  operator()(df_visit& v, C& cur) const -> int
+  {
+    switch (v)
+    {
+    case df_visit::pre:
+      if (has_left_successor(cur)) {
+        cur = left_successor(cur);
+        return 1;
+      } else {
+        v = df_visit::in;
+        return 0;
+      }
+    case df_visit::in:
+      if (has_right_successor(cur)) {
+        v = df_visit::pre;
+        cur = right_successor(cur);
+        return 1;
+      } else {
+        v = df_visit::post;
+        return 0;
+      }
+    case df_visit::post:
+      if (is_left_successor(cur)) {
+        v = df_visit::in;
+      }
+      cur = predecessor(cur);
+      return -1;
+    }
+
+    return 0;
+  }
+};
+
+/*export*/ inline constexpr tree_traverse_step_impl tree_traverse_step{};
+
+struct tree_weight_impl
+{
+  template <bidirectional_bicursor C>
+  [[nodiscard]] constexpr auto
+  operator()(C cur) const noexcept -> weight_type_t<C>
+  {
+    if (!cur) return weight_type_t<C>(0);
+    auto root{cur};
+    auto v = df_visit::pre;
+    weight_type_t<C> n(1);
+    do
+    {
+      tree_traverse_step(v, cur);
+      if (v == df_visit::pre) ++n;
+    } while (cur != root || v != df_visit::post);
+    return n;
+  }
+};
+
+/*export*/ inline constexpr tree_weight_impl tree_weight{};
+
+struct tree_height_impl
+{
+  template <bidirectional_bicursor C>
+  [[nodiscard]] constexpr auto
+  operator()(C cur) const noexcept -> weight_type_t<C>
+  {
+    using N = weight_type_t<C>;
+    if (!cur) return N(0);
+    auto root{cur};
+    auto v = df_visit::pre;
+    N n(1);
+    N m(1);
+    do
+    {
+      m = (m - N(1)) + N(tree_traverse_step(v, cur) + 1);
+      n = std::max(n, m);
+    } while (cur != root || v != df_visit::post);
+    return n;
+  }
+};
+
+/*export*/ inline constexpr tree_height_impl tree_height{};
 
 } // namespace eco::cpp20
 

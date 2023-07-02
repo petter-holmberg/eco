@@ -5,27 +5,34 @@ eco is a generic C++ library of efficient components.
 
 # Algorithms
 
-The `eco.algorithm` module contains algorithms.
-
 ## List algorithms
 
-`reverse_append` takes a forward range, a `std::forward_iterator` to the head of a list, and a `forward_linker`. It appends
-the forward range in reversed element order to the head, effectively making the last element of the original range the new head.
+`reverse_append` takes a forward range, a `std::forward_iterator` to the head of
+a list, and a `forward_linker`. It appends
+the forward range in reversed element order to the head, effectively making the
+last element of the original range the new head.
 
 Example: `[1 2 3 4] <reverse_append> [5 6 7 8] -> [4 3 2 1 5 6 7 8]`
 
-# Containers
+# Data structures
 
-The `eco.container` module contains containers.
+## Array
 
 `array` is a type constructor for dynamic arrays, similar to `std::vector`,
 but with some key differences:
 
-- The local storage of `array` is a single pointer, making storage of nested arrays where many of the inner arrays are empty more efficient.
-- Fewer member types and member functions, leveraging the capabilities of the C++20 ranges library instead.
-- Only designed to store value types and free of specializations with custom semantics, like `std::vector<bool>`.
-- The growth algorithm is configurable and by default grows the reserve area by a factor of 1.5, which saves memory and when used with many allocators prevents it from reusing previously allocated memory blocks.
-- Support for custom allocators (as defined by concepts in this library) but without support for storing stateful allocators in the `array` itself, which makes it easier to reason about ownership semantics.
+- The local storage of `array` is a single pointer, making storage of nested
+arrays where many of the inner arrays are empty more efficient.
+- Fewer member types and member functions, leveraging the capabilities of the
+C++20 ranges library instead.
+- Only designed to store value types and free of specializations with custom
+semantics, like `std::vector<bool>`.
+- The growth algorithm is configurable and by default grows the reserve area by
+a factor of 1.5, which saves memory and when used with many allocators prevents
+it from reusing previously allocated memory blocks.
+- Support for custom allocators (as defined by concepts in this library) but
+without support for storing stateful allocators in the `array` itself, which
+makes it easier to reason about ownership semantics.
 
 `array<T>` models `std::ranges::contiguous_range<T>`.
 
@@ -42,13 +49,69 @@ memory. `default_array_alloc` uses `malloc_allocator`.
 
 The member type `value_type` is the type of objects stored in the `array`.
 
-The member type `size_type` is a signed type large enough to represent
-the maximum possible size of the `array`.
+The member type `size_type` is a signed type large enough to represent the
+maximum possible size of the `array`.
 
-# Sequence
+## Basic_bitvector
 
-The `eco.sequence` module contains components for implemention of sequence
-types, such as containers.
+`bit_array` describes a type for compact storage of bits. A `bit_array` is a
+`std::regular` type that supports the following operations:
+
+- Construction with a size.
+- `size` returns the number of stored bits.
+- `bitread(i)` returns the `i`:th bit.
+- `bitset(i)` sets the `i`:th bit to 1.
+- `bitclear(i)` sets the `i`:th bit to 0.
+
+`bitvector` describes a `bit_array` with the following additional operations:
+
+- `rank_0(i)` returns the number of 0-bits in the range `[0, i)`.
+- `rank_1(i)` returns the number of 1-bits in the range `[0, i)`.
+- `select_0(i)` returns the position of the `i`:th 0-bit.
+- `select_1(i)` returns the position of the `i`:th 1-bit.
+- `init` preprocesses the `bitvector` for efficient `rank` and `select` queries.
+
+`basic_bitvector` is a type constructor for a `bitvector` that stores bits in an
+uncompressed form.
+
+# Trees
+
+`louds` (Level-Order Unary Degree Sequence) is a compact representation of an
+ordinal tree. It can be constructed from a tree of a known size with a pair of
+`linked_bicursor`s, where the `left_branch` points to the first child of a node
+and `right branch` points to the next sibling.
+
+- `root()` returns the root node of the tree.
+- `first_child(v)` returns the first child of node `v`.
+- `last_child(v)` returns the last child of node `v`.
+- `next_sibling(v)` returns the next sibling of node `v`.
+- `prev_sibling(v)` returns the previous sibling of node `v`.
+- `parent(v)` returns the parent of node `v`.
+- `is_leaf(v)` returns `true` iff node `v` is a leaf.
+- `nodemap(v)` returns a unique identifier of node `v`, called its _index_.
+- `nodeselect(i)` returns the node with index `i`.
+- `children(v)` returns the number of children of node `v`.
+- `child(v, n)` returns the `n`:th child of node `v`.
+- `child_rank(v)` returns the `n` such that node `v` is the `n`:th child of
+its parent.
+- `lca(t, u, v)` returns the lowest common ancestor of nodes `u` and `v` in `t`.
+
+`binary_louds` (Level-Order Unary Degree Sequence) is a compact representation
+of a binary tree. It can be constructed from a binary tree of a known size with
+a pair of `bidirectional_bicursor`s.
+
+- `root()` returns the root node of the tree.
+- `parent(v)` returns the parent of node `v`.
+- `has_left_child(v)` returns `true` iff node `v` has a left child.
+- `has_right_child(v)` returns `true` iff node `v` has a right child.
+- `is_leaf(v)` returns `true` iff node `v` is a leaf.
+- `left_child(v)` returns the left child of node `v`.
+- `right_child(v)` returns the right child of node `v`.
+- `child_label(v)` returns the label of the edge leading to node `v`.
+
+# Sequences
+
+Components for implemention of sequence types, such as containers.
 
 ## Extents
 
