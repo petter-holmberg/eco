@@ -5,12 +5,42 @@ eco is a generic C++ library of efficient components.
 
 # Algorithms
 
+## Combinatorial algorithms
+
+`dlx` is a type constructor implementing Donald Knuth's "Algorithm X" for
+solving exact cover problems using dancing links.
+
+The constructor takes a `std::forward_range` of item values and a
+`std::forward_range` of options containing item indexes.
+
+The function call operator takes a `dlx_visitor` that is invoked once for every
+found solution, and a `dlx_item_choice_heuristic` for choosing the items to
+cover during the execution of the algorithm. `dlx_mrv_heuristic` is the default
+heurisic.
+
+`dlx_visitor` describes a `std::invocable` type that is invoked once for every
+found solution.
+
+`dlx_visit_all` is a type constructor implementing a `dlx_visitor` that stores
+all matching choices in a member `array` `solutions`.
+
+`dlx_item_choice_heuristic` describes a `std::invocable` type that is invoked to
+choose the next remaining item to cover during a run of the algorithm.
+
+`dlx_mrv_heuristic` is a type constructor implementing a
+`dlx_item_choice_heuristic` that chooses the first remaining item selected by
+the minimum number of options.
+
+Example: For 7 items, choices
+`[[2, 4], [0, 3, 6], [1, 2, 5], [0, 3, 5], [1, 6], [3, 4, 6]]` has one solution
+`[0, 3, 4]`, i.e. the options choosing items `[[2, 4], [0, 3, 5], [1, 6]]`.
+
 ## List algorithms
 
 `reverse_append` takes a forward range, a `std::forward_iterator` to the head of
-a list, and a `forward_linker`. It appends
-the forward range in reversed element order to the head, effectively making the
-last element of the original range the new head.
+a list, and a `forward_linker`.
+It appends the forward range in reversed element order to the head, effectively
+making the last element of the original range the new head.
 
 Example: `[1 2 3 4] <reverse_append> [5 6 7 8] -> [4 3 2 1 5 6 7 8]`
 
@@ -52,19 +82,15 @@ The member type `value_type` is the type of objects stored in the `array`.
 The member type `size_type` is a signed type large enough to represent the
 maximum possible size of the `array`.
 
-## Basic_bitvector
+## Bitvectors
 
-`bit_array` describes a type for compact storage of bits. A `bit_array` is a
-`std::regular` type that supports the following operations:
+`bitvector` describes a `std::regular` type with the following operations:
 
-- Construction with a size.
-- `size` returns the number of stored bits.
-- `bitread(i)` returns the `i`:th bit.
-- `bitset(i)` sets the `i`:th bit to 1.
-- `bitclear(i)` sets the `i`:th bit to 0.
-
-`bitvector` describes a `bit_array` with the following additional operations:
-
+- `size()` returns the number of bits stored.
+- `bitread(i)` reads bit `i`.
+- `bitset(i)` sets bit `i` to `1`.
+- `bitclear(i)` sets bit `i` to `0`.
+- `init()` perform post-construction initialization for faster access.
 - `rank_0(i)` returns the number of 0-bits in the range `[0, i)`.
 - `rank_1(i)` returns the number of 1-bits in the range `[0, i)`.
 - `select_0(i)` returns the position of the `i`:th 0-bit.

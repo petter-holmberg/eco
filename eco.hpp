@@ -23,7 +23,7 @@ struct ssize_type_traits
 };
 
 /*export*/ template <typename T>
-using ssize_type_t = typename ssize_type_traits<T>::type;
+using ssize_t = typename ssize_type_traits<T>::type;
 
 /*export*/ struct memory_view : public std::ranges::view_interface<memory_view>
 {
@@ -109,7 +109,7 @@ concept boolean_testable =
 
 /*export*/ template <typename T>
 concept allocator =
-  requires(T a, ssize_type_t<memory_view> n)
+  requires(T a, ssize_t<memory_view> n)
   {
     { a.allocate(n) } -> std::same_as<memory_view>;
   };
@@ -125,7 +125,7 @@ concept deallocatable_allocator =
 /*export*/ template <typename T>
 concept reallocatable_allocator =
   allocator<T> &&
-  requires(T a, memory_view mem, ssize_type_t<memory_view> n)
+  requires(T a, memory_view mem, ssize_t<memory_view> n)
   {
     { a.reallocate(mem, n) } -> std::same_as<memory_view>;
   };
@@ -142,7 +142,7 @@ concept ownership_aware_allocator =
 {
 public:
   [[nodiscard]] auto
-  allocate(ssize_type_t<memory_view> n) noexcept -> memory_view
+  allocate(ssize_t<memory_view> n) noexcept -> memory_view
   {
     if (n <= 0) {
       return {};
@@ -155,7 +155,7 @@ public:
   }
 
   [[nodiscard]] auto
-  reallocate(memory_view mem, ssize_type_t<memory_view> n) noexcept -> memory_view
+  reallocate(memory_view mem, ssize_t<memory_view> n) noexcept -> memory_view
   {
     if (n <= 0) {
       return {};
@@ -186,7 +186,7 @@ class arena_allocator
   std::byte* pos;
 
 public:
-  explicit arena_allocator(A alloc, ssize_type_t<memory_view> n)
+  explicit arena_allocator(A alloc, ssize_t<memory_view> n)
     : arena{alloc.allocate(n)}
     , pos{arena.begin()}
   {}
@@ -201,7 +201,7 @@ public:
   arena_allocator& operator=(arena_allocator const&) = delete;
 
   [[nodiscard]] auto
-  allocate(ssize_type_t<memory_view> n) -> memory_view
+  allocate(ssize_t<memory_view> n) -> memory_view
   // [[ pre: n <= arena.end() - pos ]]
   {
     if (n <= 0) {
@@ -287,7 +287,7 @@ inline constexpr array_copier<T> default_array_copy{};
 
 struct default_array_growth_algorithm
 {
-  using ssize_type = ssize_type_t<memory_view>;
+  using ssize_type = ssize_t<memory_view>;
 
   constexpr auto
   operator()(ssize_type capacity, ssize_type lower_bound) const noexcept -> ssize_type
@@ -304,7 +304,7 @@ struct default_array_growth_algorithm
 /*export*/ template
 <
   typename T,
-  typename Size = ssize_type_t<memory_view>,
+  typename Size = ssize_t<memory_view>,
   typename Metadata = std::monostate,
   auto copier = default_array_copy<T>,
   auto ga = default_array_growth,
@@ -579,7 +579,7 @@ public:
   constexpr auto
   operator=(extent&& x) noexcept -> extent&
   {
-    auto* temp = x.start;
+    auto temp = x.start;
     x.start = nullptr;
     assign(nullptr);
     start = temp;
@@ -916,7 +916,7 @@ public:
     {}
 
     constexpr
-    iterator(forward_list_pool& p, ssize_type_t<forward_list_pool> node) noexcept
+    iterator(forward_list_pool& p, ssize_t<forward_list_pool> node) noexcept
       : node{p.pool.begin() + node}
     {}
 
@@ -975,7 +975,7 @@ static_assert(forward_linker<forward_list_pool<int, int>::next_linker>);
 
 /*export*/ template <typename T, typename Size>
 constexpr void
-free_list(forward_list_pool<T, Size>& pool, ssize_type_t<forward_list_pool<T, Size>> x) noexcept
+free_list(forward_list_pool<T, Size>& pool, ssize_t<forward_list_pool<T, Size>> x) noexcept
 {
   while (x != pool.limit()) x = pool.free_node(x);
 }
@@ -1168,7 +1168,7 @@ public:
     {}
 
     constexpr
-    iterator(list_pool& p, ssize_type_t<list_pool> node) noexcept
+    iterator(list_pool& p, ssize_t<list_pool> node) noexcept
       : node{p.pool.begin() + node}
     {}
 
@@ -1254,8 +1254,8 @@ public:
     constexpr void
     operator()(iterator i, iterator j) noexcept
     {
-      i.node->prev = static_cast<Size>(j.node - i.node);
       i.node->next = static_cast<Size>(j.node - i.node);
+      j.node->prev = static_cast<Size>(i.node - j.node);
     }
   };
 
@@ -1268,7 +1268,7 @@ static_assert(forward_linker<list_pool<int, int>::next_linker>);
 
 /*export*/ template <typename T, typename Size>
 constexpr void
-free_list(list_pool<T, Size>& pool, ssize_type_t<list_pool<T, Size>> x) noexcept
+free_list(list_pool<T, Size>& pool, ssize_t<list_pool<T, Size>> x) noexcept
 {
   while (x != pool.limit()) x = pool.free_node(x);
 }
@@ -1283,7 +1283,7 @@ class array
 {
 public:
   using value_type = T;
-  using ssize_type = ssize_type_t<memory_view>;
+  using ssize_type = ssize_t<memory_view>;
 
 private:
   extent<T, ssize_type, std::monostate, default_array_copy<T>, ga, alloc> header;
@@ -1331,7 +1331,7 @@ public:
   array(R&& range) noexcept(std::is_nothrow_copy_constructible_v<std::ranges::range_value_t<R>>)
   // [[ post: size() == std::ranges::ssize(range) ]]
   // [[ post: is_full() ]]
-    : header{std::distance(std::ranges::begin(range), std::ranges::end(range))}
+    : header{std::ranges::ssize(range)}
   {
     header.insert_space(
       capacity(),
@@ -1347,7 +1347,7 @@ public:
   constexpr auto
   operator=(R&& range) noexcept(std::is_nothrow_copy_constructible_v<std::ranges::range_value_t<R>>) -> array&
   {
-    auto const n_elements{std::distance(std::ranges::begin(range), std::ranges::end(range))};
+    auto const n_elements{std::ranges::ssize(range)};
     if (capacity() < n_elements) {
       array temp{range};
       swap(temp);
@@ -1568,7 +1568,7 @@ public:
   // [[ post axiom: "capacity() unchanged" ]]
   {
     auto const pos{std::ranges::begin(range)};
-    header.erase_space(pos, std::distance(std::ranges::begin(range), std::ranges::end(range)));
+    header.erase_space(pos, std::ranges::ssize(range));
     return pos;
   }
 
@@ -1593,26 +1593,515 @@ swap(array<T, ga, alloc>& x, array<T, ga, alloc>& y) noexcept
   x.swap(y);
 }
 
+/*export*/ template <typename T, auto ga, auto& alloc>
+constexpr void
+resize(array<T, ga, alloc>& x, ssize_t<array<T, ga, alloc>> size, value_t<array<T, ga, alloc>> const& value = T{})
+{
+  if (x.size() < size) {
+    x.reserve(size);
+    while (size != 0) {
+      x.push_back(value);
+      --size;
+    }
+  } else if (x.size() > size) {
+    size = size - x.size();
+    while (size != 0) {
+      x.pop_back();
+    }
+  }
+}
+
+template <std::signed_integral T> class dlx;
+
+/*export*/ template <typename T, typename U>
+concept dlx_visitor =
+  std::invocable<T, ssize_t<dlx<U>>, typename dlx<U>::solution_iterator>;
+
+/*export*/ template <std::signed_integral T>
+struct dlx_visit_all
+{
+  array<array<T>> solutions;
+
+  constexpr void
+  operator()(ssize_t<dlx<T>> l, typename dlx<T>::solution_iterator first) noexcept
+  {
+    auto& options = solutions.push_back(array<T>{l});
+    while (l != 0) {
+      options.push_back(first.choice());
+      ++first;
+      --l;
+    }
+  }
+};
+
+/*export*/ template <typename T, typename U>
+concept dlx_item_choice_heuristic =
+  std::invocable<T, ssize_t<dlx<U>>, typename dlx<U>::item_iterator> &&
+  std::convertible_to<std::invoke_result_t<T, ssize_t<dlx<U>>, typename dlx<U>::item_iterator>, ssize_t<dlx<U>>>;
+
+/*export*/ template <std::signed_integral T>
+struct dlx_mrv_heuristic
+{
+  [[nodiscard]] constexpr auto
+  operator()(ssize_t<dlx<T>> i, typename dlx<T>::item_iterator first) const noexcept -> ssize_t<dlx<T>>
+  {
+    auto min{std::numeric_limits<T>::max()};
+    auto pos{first};
+    ++pos;
+    while (pos != first && min > 0) {
+      if (*(pos) < min) {
+        min = *(pos);
+        i = pos.item();
+      }
+      ++pos;
+    }
+    return i;
+  }
+};
+
+/*export*/ template <std::signed_integral T>
+class dlx
+{
+public:
+  using value_type = T;
+  using ssize_type = ssize_t<memory_view>;
+
+private:
+  struct node
+  {
+    T top{};
+    T ulink{};
+    T dlink{};
+  };
+
+  array<node> data;
+  array<node*> solution;
+  node* items_first;
+
+  [[nodiscard]] constexpr auto
+  prev(node *x) noexcept -> node*
+  {
+    return data.begin() + x->ulink;
+  }
+
+  [[nodiscard]] constexpr auto
+  next(node *x) noexcept -> node*
+  {
+    return data.begin() + x->dlink;
+  }
+
+  [[nodiscard]] constexpr auto
+  top(node *x) noexcept -> node*
+  {
+    return data.begin() + x->top;
+  }
+
+  [[nodiscard]] constexpr auto
+  item(ssize_type i) noexcept -> node*
+  {
+    return data.begin() + i;
+  }
+
+  [[nodiscard]] constexpr auto
+  item_header(ssize_type i) noexcept -> node*
+  {
+    return items_first + i;
+  }
+
+  [[nodiscard]] constexpr auto
+  rlink(ssize_type i) noexcept -> node*
+  {
+    return next(items_first + i);
+  }
+
+  constexpr void
+  unlink(node* x) noexcept
+  {
+    prev(x)->dlink = x->dlink;
+    next(x)->ulink = x->ulink;
+  }
+
+  constexpr void
+  relink(node *x) noexcept
+  {
+    prev(x)->dlink = x - data.begin();
+    next(x)->ulink = x - data.begin();
+  }
+
+  constexpr void
+  hide(node* p) noexcept
+  {
+    auto q{p + 1};
+    while (q != p) {
+      auto x{q->top};
+      if (x <= 0) {
+        q = prev(q);
+      } else {
+        unlink(q);
+        item(x)->top -= 1;
+        ++q;
+      }
+    }
+  }
+
+  constexpr void
+  unhide(node* p) noexcept
+  {
+    auto q{p - 1};
+    while (q != p) {
+      auto x{q->top};
+      if (x <= 0)
+      {
+        q = next(q);
+      } else {
+        relink(q);
+        item(x)->top += 1;
+        --q;
+      }
+    }
+  }
+
+  constexpr
+  void cover(node* i) noexcept
+  {
+    auto p{next(i)};
+    while (p != i)
+    {
+      hide(p);
+      p = next(p);
+    }
+    unlink(item_header(i - data.begin()));
+  }
+
+  constexpr
+  void uncover(node* i) noexcept
+  {
+    relink(item_header(i - data.begin()));
+    auto p{prev(i)};
+    while (p != i)
+    {
+      unhide(p);
+      p = prev(p);
+    }
+  }
+
+  [[nodiscard]] constexpr auto
+  cover_item(ssize_type i, ssize_type l, dlx_item_choice_heuristic<T> auto heuristic) noexcept -> ssize_type
+  {
+    i = choose_item(i, heuristic);
+    cover(item(i));
+    solution[l] = next(item(i));
+    return i;
+  }
+
+  [[nodiscard]] constexpr auto
+  choose_item(ssize_type i, dlx_item_choice_heuristic<T> auto heuristic) noexcept -> ssize_type
+  {
+    return std::invoke(heuristic, i, item_begin());
+  }
+
+  [[nodiscard]] constexpr auto
+  try_option(ssize_type l) noexcept -> ssize_type
+  {
+    auto p{solution[l] + 1};
+    while (p != solution[l]) {
+      auto i{p->top};
+      if (i <= 0) {
+        p = prev(p);
+      } else {
+        cover(item(i));
+        ++p;
+      }
+    }
+    return l + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  retry_option(ssize_type l) noexcept -> ssize_type
+  {
+    auto p{solution[l] - 1};
+    while (p != solution[l]) {
+      auto i{p->top};
+      if (i <= 0) {
+        p = next(p);
+      } else {
+        uncover(item(i));
+        --p;
+      }
+    }
+    auto i{solution[l]->top};
+    solution[l] = next(solution[l]);
+    return i;
+  }
+
+public:
+  class item_iterator
+  {
+    friend class dlx;
+
+    node* first;
+    node* head;
+    node* pos;
+
+    [[nodiscard]] constexpr
+    item_iterator(node* f, node* h, node* i) noexcept
+      : first{f}, head{h}, pos{i}
+    {}
+
+  public:
+    using value_type = dlx::value_type;
+    using difference_type = dlx::ssize_type;
+
+    constexpr item_iterator() noexcept = default;
+
+    [[nodiscard]] constexpr auto
+    operator*() const noexcept -> value_type&
+    {
+      return pos->top;
+    }
+
+    constexpr auto
+    operator++() noexcept -> item_iterator&
+    {
+      pos = first + pos->dlink;
+      return *this;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator++(int) noexcept -> item_iterator
+    {
+      auto temp{*this};
+      ++(*this);
+      return temp;
+    }
+
+    [[nodiscard]] constexpr auto
+    item() const noexcept -> difference_type
+    {
+      return (pos - head);
+    }
+
+    friend constexpr auto
+    operator==(item_iterator const& x, item_iterator const& y) noexcept -> bool
+    {
+      return x.pos == y.pos;
+    }
+
+    friend constexpr auto
+    operator!=(item_iterator const& x, item_iterator const& y) noexcept -> bool
+    {
+      return !(x == y);
+    }
+  };
+
+  class solution_iterator
+  {
+    friend class dlx;
+
+    node** pos;
+
+    [[nodiscard]] explicit constexpr
+    solution_iterator(node** first) noexcept
+      : pos{first}
+    {}
+
+  public:
+    using value_type = dlx::value_type;
+    using difference_type = dlx::ssize_type;
+
+    constexpr solution_iterator() noexcept = default;
+
+    [[nodiscard]] constexpr auto
+    operator*() const noexcept -> value_type&
+    {
+      return *(*pos - 1);
+    }
+
+    constexpr auto
+    operator++() noexcept -> solution_iterator&
+    {
+      ++pos;
+      return *this;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator++(int) noexcept -> solution_iterator
+    {
+      auto temp{*this};
+      ++(*this);
+      return temp;
+    }
+
+    [[nodiscard]] constexpr auto
+    choice() const noexcept -> difference_type
+    {
+      auto spacer{*pos};
+      while (spacer->top > 0) --spacer;
+      return -spacer->top;
+    }
+
+    friend constexpr auto
+    operator==(solution_iterator const& x, solution_iterator const& y) noexcept -> bool
+    {
+      return x.pos == y.pos;
+    }
+
+    friend constexpr auto
+    operator!=(solution_iterator const& x, solution_iterator const& y) noexcept -> bool
+    {
+      return !(x == y);
+    }
+  };
+
+  [[nodiscard]] constexpr auto
+  item_begin() noexcept -> item_iterator
+  {
+    return {data.begin(), items_first, items_first};
+  }
+
+  [[nodiscard]] constexpr auto
+  solution_begin() noexcept -> solution_iterator
+  {
+    return solution_iterator{solution.begin()};
+  }
+
+  [[nodiscard]] constexpr
+  dlx() noexcept = default;
+
+  template <std::ranges::forward_range I, std::ranges::forward_range O>
+    requires
+      std::constructible_from<T, std::ranges::range_value_t<I>> &&
+      std::ranges::forward_range<std::ranges::range_value_t<O>> &&
+      std::integral<std::ranges::range_value_t<std::ranges::range_value_t<O>>>
+  [[nodiscard]] constexpr
+  dlx(I&& items, O&& options)
+  {
+    auto const n_items{std::ranges::ssize(items)};
+    auto const n_options{std::ranges::ssize(options)};
+    resize(solution, n_options);
+
+    data.push_back();
+    ssize_type i{1};
+    while (i <= n_items) {
+      data.push_back(0, i, i);
+      ++i;
+    }
+    data.push_back();
+
+    auto p{data.size() - 1};
+    ssize_type spacer{-1};
+
+    for (auto const& option : options) {
+      ssize_type j{1};
+      for (auto const& item : option) {
+        auto const i{item + 1};
+        data.push_back(i, 0, 0);
+        ++data[i].top;
+        auto prev = data[i].ulink;
+        data[i].ulink = p + j;
+        data[prev].dlink = p + j;
+        data[p + j].top = i;
+        data[p + j].ulink = prev;
+        data[p + j].dlink = i;
+        ++j;
+      }
+
+      data[p].dlink = p - 1 + j;
+      data.push_back(spacer, data.size() - j + 1, 0);
+      --spacer;
+      p += j;
+    }
+
+    data.push_back(0, data.size() + n_items, data.size() + 1);
+
+    for (auto const& item : items) {
+      data.push_back(item, data.size() - 1, data.size() + 1);
+    }
+    data[data.size() - 1].dlink = data.size() - n_items - 1;
+
+    items_first = data.end() - n_items - 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  operator<=>(dlx const&) const noexcept -> bool = default;
+
+  [[nodiscard]] static constexpr auto
+  visit_all() -> dlx_visit_all<T>
+  {
+    return dlx_visit_all<T>{};
+  }
+
+  template <dlx_visitor<T> V, dlx_item_choice_heuristic<T> H = dlx_mrv_heuristic<T>>
+  void
+  operator()(V& visitor, H heuristic = {})
+  {
+    ssize_type i{1};
+    ssize_type l{0};
+
+  enter_level_l:
+    if (rlink(0) == items_first) {
+      visit_solution(l, visitor);
+      goto leave_level_l;
+    }
+    i = cover_item(i, l, heuristic);
+
+  try_option_l:
+    if (solution[l] == item(i)) {
+      goto backtrack;
+    } else {
+      l = try_option(l);
+      goto enter_level_l;
+    }
+
+  retry_option_l:
+    i = retry_option(l);
+    goto try_option_l;
+
+  backtrack:
+    uncover(item(i));
+
+  leave_level_l:
+    if (l > 0) {
+      --l;
+      goto retry_option_l;
+    }
+  }
+
+  constexpr void
+  visit_solution(ssize_type l, dlx_visitor<T> auto& visitor)
+  {
+    std::invoke(visitor, l, solution_begin());
+  }
+};
+
+/*export*/ template <typename I, typename O>
+dlx(I&& items, O&& options)->dlx<std::ranges::range_value_t<I>>;
+
+static_assert(std::forward_iterator<typename dlx<int>::item_iterator>);
+static_assert(std::forward_iterator<typename dlx<int>::solution_iterator>);
+static_assert(dlx_visitor<dlx_visit_all<int>, int>);
+static_assert(dlx_item_choice_heuristic<dlx_mrv_heuristic<int>, int>);
+
 /*export*/ template <typename T>
 concept bitvector =
   std::regular<T> &&
-  std::constructible_from<ssize_type_t<T>> &&
-  requires (T b, T const& cb, ssize_type_t<T> i) {
-    { cb.size() } -> std::same_as<ssize_type_t<T>>;
+  std::constructible_from<ssize_t<T>> &&
+  requires (T b, T const& cb, ssize_t<T> i) {
+    { cb.size() } -> std::same_as<ssize_t<T>>;
     { cb.bitread(i) } -> boolean_testable;
     b.bitset(i);
     b.bitclear(i);
     b.init();
-    { cb.rank_0(i) } -> std::same_as<ssize_type_t<T>>;
-    { cb.rank_1(i) } -> std::same_as<ssize_type_t<T>>;
-    { cb.select_0(i) } -> std::same_as<ssize_type_t<T>>;
-    { cb.select_1(i) } -> std::same_as<ssize_type_t<T>>;
+    { cb.rank_0(i) } -> std::same_as<ssize_t<T>>;
+    { cb.rank_1(i) } -> std::same_as<ssize_t<T>>;
+    { cb.select_0(i) } -> std::same_as<ssize_t<T>>;
+    { cb.select_1(i) } -> std::same_as<ssize_t<T>>;
   };
 
 /*export*/ template
 <
   typename Word = unsigned int,
-  typename Size = ssize_type_t<memory_view>
+  typename Size = ssize_t<memory_view>
 >
 class basic_bitvector
 {
@@ -1645,7 +2134,8 @@ public:
     }
   }
 
-  constexpr auto operator<=>(basic_bitvector const&) const noexcept = default;
+  [[nodiscard]] constexpr auto
+  operator<=>(basic_bitvector const&) const noexcept = default;
 
   constexpr
   void init() noexcept
@@ -1741,13 +2231,13 @@ public:
   }
 };
 
-static_assert(bitvector<basic_bitvector<unsigned int, ssize_type_t<memory_view>>>);
+static_assert(bitvector<basic_bitvector<unsigned int, ssize_t<memory_view>>>);
 
 struct succ_0_impl
 {
   /*export*/ template <bitvector B>
   [[nodiscard]] constexpr auto
-  operator()(B const& b, ssize_type_t<B> i) const noexcept -> ssize_type_t<B>
+  operator()(B const& b, ssize_t<B> i) const noexcept -> ssize_t<B>
   {
     return b.select_0(b.rank_0(i));
   }
@@ -1759,7 +2249,7 @@ struct succ_1_impl
 {
   /*export*/ template <bitvector B>
   [[nodiscard]] constexpr auto
-  operator()(B const& b, ssize_type_t<B> i) const noexcept -> ssize_type_t<B>
+  operator()(B const& b, ssize_t<B> i) const noexcept -> ssize_t<B>
   {
     return b.select_1(b.rank_1(i));
   }
@@ -1771,7 +2261,7 @@ struct pred_0_impl
 {
   /*export*/ template <bitvector B>
   [[nodiscard]] constexpr auto
-  operator()(B const& b, ssize_type_t<B> i) const noexcept -> ssize_type_t<B>
+  operator()(B const& b, ssize_t<B> i) const noexcept -> ssize_t<B>
   {
     return b.select_0(b.rank_0(i + 1) - 1);
   }
@@ -1783,7 +2273,7 @@ struct pred_1_impl
 {
   /*export*/ template <bitvector B>
   [[nodiscard]] constexpr auto
-  operator()(B const& b, ssize_type_t<B> i) const noexcept -> ssize_type_t<B>
+  operator()(B const& b, ssize_t<B> i) const noexcept -> ssize_t<B>
   {
     return b.select_1(b.rank_1(i + 1) - 1);
   }
@@ -1828,14 +2318,14 @@ concept linked_bicursor =
     set_right_successor(cur, cur);
   };
 
-template <bitvector B = basic_bitvector<unsigned int, ssize_type_t<memory_view>>>
+template <bitvector B = basic_bitvector<unsigned int, ssize_t<memory_view>>>
 /*export*/ class louds
 {
   B bits;
 
 public:
-  using ssize_type = ssize_type_t<memory_view>;
-  using index_type = ssize_type_t<memory_view>;
+  using ssize_type = ssize_t<memory_view>;
+  using index_type = ssize_t<memory_view>;
 
   constexpr louds() noexcept = default;
 
@@ -1952,9 +2442,9 @@ public:
 
 struct lca_impl
 {
-  template <bitvector B = basic_bitvector<unsigned int, ssize_type_t<memory_view>>>
+  template <bitvector B = basic_bitvector<unsigned int, ssize_t<memory_view>>>
   [[nodiscard]] constexpr auto
-  operator()(louds<B> const& t, ssize_type_t<louds<B>> u, ssize_type_t<louds<B>> v) const noexcept -> ssize_type_t<louds<B>>
+  operator()(louds<B> const& t, ssize_t<louds<B>> u, ssize_t<louds<B>> v) const noexcept -> ssize_t<louds<B>>
   {
     while (u != v) {
       if (u > v) u = t.parent(u); else v = t.parent(v);
@@ -1974,14 +2464,14 @@ struct index_type_traits
 /*export*/ template <typename T>
 using index_type_t = typename index_type_traits<T>::type;
 
-template <bitvector B = basic_bitvector<unsigned int, ssize_type_t<memory_view>>>
+template <bitvector B = basic_bitvector<unsigned int, ssize_t<memory_view>>>
 /*export*/ class binary_louds
 {
   B bits;
 
 public:
-  using ssize_type = ssize_type_t<memory_view>;
-  using index_type = ssize_type_t<memory_view>;
+  using ssize_type = ssize_t<memory_view>;
+  using index_type = ssize_t<memory_view>;
 
   constexpr binary_louds() noexcept = default;
 
@@ -2068,11 +2558,11 @@ public:
   }
 };
 
-template <bitvector B = basic_bitvector<unsigned int, ssize_type_t<memory_view>>>
+template <bitvector B = basic_bitvector<unsigned int, ssize_t<memory_view>>>
 class binary_louds_cursor
 {
   binary_louds<B> const* tree = nullptr;
-  ssize_type_t<binary_louds<B>> node{};
+  ssize_t<binary_louds<B>> node{};
 
 public:
   using weight_type = decltype(node);
@@ -2156,7 +2646,7 @@ public:
   }
 };
 
-static_assert(eco::bidirectional_bicursor<binary_louds_cursor<basic_bitvector<unsigned int, ssize_type_t<memory_view>>>>);
+static_assert(eco::bidirectional_bicursor<binary_louds_cursor<basic_bitvector<unsigned int, ssize_t<memory_view>>>>);
 
 /*export*/ enum class df_visit
 {
