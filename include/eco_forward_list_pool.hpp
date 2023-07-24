@@ -1,0 +1,231 @@
+#ifndef ECO_FORWARD_LIST_POOL_
+#define ECO_FORWARD_LIST_POOL_
+
+#include <concepts>
+
+#include "eco_concepts.hpp"
+#include "eco_extent.hpp"
+#include "eco_type_traits.hpp"
+
+namespace eco::inline cpp20 {
+
+template
+<
+  typename T,
+  typename Size,
+  auto ga = default_array_growth,
+  auto& alloc = default_array_alloc
+>
+class forward_list_pool
+{
+public:
+  using value_type = T;
+  using ssize_type = Size;
+
+  [[nodiscard]] constexpr auto
+  limit() const noexcept -> ssize_type
+  {
+    return Size{-1};
+  }
+
+  constexpr
+  forward_list_pool()
+    : pool{1}
+  {
+    static_assert(std::signed_integral<ssize_type>);
+    free_list_head() = limit();
+  }
+
+  explicit constexpr
+  forward_list_pool(ssize_type x)
+    : pool{x}
+  {
+    static_assert(std::signed_integral<ssize_type>);
+    free_list_head() = limit();
+  }
+
+private:
+  struct node_t
+  {
+    ssize_type next;
+    T value;
+  };
+
+  extent<node_t, ssize_type, ssize_type, default_array_copy<node_t>, ga, alloc> pool;
+
+  [[nodiscard]] constexpr auto
+  free_list_head() noexcept -> ssize_type&
+  {
+    return *(pool.metadata());
+  }
+
+  [[nodiscard]] constexpr auto
+  free_list_head() const noexcept -> ssize_type const&
+  {
+    return *(pool.metadata());
+  }
+
+  [[nodiscard]] constexpr auto
+  node(ssize_type x) noexcept -> node_t&
+  {
+    return *(pool.begin() + x);
+  }
+
+  [[nodiscard]] constexpr auto
+  node(ssize_type x) const noexcept -> node_t const&
+  {
+    return *(pool.begin() + x);
+  }
+
+  [[nodiscard]] constexpr auto
+  new_node() -> ssize_type
+  {
+    pool.push_back(node_t{});
+    return ssize_type(pool.size() - 1);
+  }
+
+  constexpr void
+  set_next(ssize_type x, ssize_type y) noexcept
+  {
+    node(x).next = y - x;
+  }
+
+public:
+  [[nodiscard]] constexpr auto
+  value(ssize_type x) noexcept-> T&
+  {
+    return node(x).value;
+  }
+
+  [[nodiscard]] constexpr auto
+  value(ssize_type x) const noexcept -> T const&
+  {
+    return node(x).value;
+  }
+
+  [[nodiscard]] constexpr auto
+  next(ssize_type x) const noexcept -> const ssize_type
+  {
+    return x + node(x).next;
+  }
+
+  [[nodiscard]] constexpr auto
+  allocate_node(T const& val, ssize_type tail) -> ssize_type
+  {
+    auto new_list = free_list_head();
+    if (free_list_head() == limit()) {
+      new_list = new_node();
+    } else {
+      free_list_head() = next(free_list_head());
+    }
+    set_next(new_list, tail);
+    value(new_list) = val;
+    return new_list;
+  }
+
+  constexpr auto
+  free_node(ssize_type x) noexcept -> ssize_type
+  {
+    // pre axiom: "x is a list head"
+    auto tail = next(x);
+    set_next(x, free_list_head());
+    free_list_head() = x;
+    return tail;
+  }
+
+  struct next_linker;
+
+  class iterator
+  {
+    node_t* node;
+
+  public:
+    using value_type = forward_list_pool::value_type;
+    using difference_type = forward_list_pool::ssize_type;
+
+    constexpr iterator() noexcept = default;
+
+    explicit constexpr
+    iterator(forward_list_pool& p) noexcept
+      : node{p.end()}
+    {}
+
+    constexpr
+    iterator(forward_list_pool& p, ssize_t<forward_list_pool> node) noexcept
+      : node{p.pool.begin() + node}
+    {}
+
+    [[nodiscard]] constexpr auto
+    operator*() const noexcept -> value_type&
+    {
+      return node->value;
+    }
+
+    constexpr auto
+    operator++() noexcept -> iterator&
+    {
+      node += node->next;
+      return *this;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator++(int) noexcept -> iterator
+    {
+      auto temp{*this};
+      ++(*this);
+      return temp;
+    }
+
+    friend constexpr auto
+    operator==(iterator const& x, iterator const& y) noexcept -> bool
+    {
+      return x.node == y.node;
+    }
+
+    friend constexpr auto
+    operator!=(iterator const& x, iterator const& y) noexcept -> bool
+    {
+      return !(x == y);
+    }
+
+    friend next_linker;
+  };
+
+  [[nodiscard]] constexpr auto
+  forward_iterator(ssize_type x) noexcept -> iterator
+  {
+    return {*this, x};
+  }
+
+  struct next_linker
+  {
+    using iterator_type = iterator;
+
+    void operator()(iterator i, iterator j)
+    {
+      i.node->next = static_cast<Size>(j.node - i.node);
+    }
+  };
+
+  [[nodiscard]] constexpr auto
+  forward_linker() const noexcept -> next_linker
+  {
+    return {};
+  }
+
+  using iterator_type = iterator;
+};
+
+static_assert(std::forward_iterator<forward_list_pool<int, int>::iterator>);
+static_assert(forward_linker<forward_list_pool<int, int>::next_linker>);
+
+template <typename T, typename Size>
+constexpr void
+free_list(forward_list_pool<T, Size>& pool, ssize_t<forward_list_pool<T, Size>> x) noexcept
+{
+  while (x != pool.limit()) x = pool.free_node(x);
+}
+
+}
+
+#endif

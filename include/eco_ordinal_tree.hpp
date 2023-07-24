@@ -1,0 +1,151 @@
+#ifndef ECO_ORDINAL_TREE_
+#define ECO_ORDINAL_TREE_
+
+#include <cassert>
+
+#include "eco_bitvector.hpp"
+#include "eco_type_traits.hpp"
+
+namespace eco::inline cpp20 {
+
+template <bitvector B = basic_bitvector<>>
+class louds
+{
+  B bits;
+
+public:
+  using ssize_type = ssize_t<memory_view>;
+  using index_type = ssize_t<memory_view>;
+
+  [[nodiscard]] constexpr
+  louds() noexcept = default;
+
+  template <linked_bicursor cur>
+  [[nodiscard]] constexpr
+  louds(cur root, cur limit, ssize_type n)
+    : bits{2 * n + 1}
+  {
+    auto head{root};
+    auto tail{root};
+    bits.bitset(0);
+    ssize_type i{2};
+    ssize_type j{0};
+    while (head) {
+      set_right_successor(tail, left_successor(head));
+      while (has_right_successor(tail)) {
+        bits.bitset(i);
+        ++i;
+        tail = right_successor(tail);
+      }
+      ++i;
+      cur parent{head};
+      head = right_successor(head);
+      if (!bits.bitread(j + 1)) {
+        set_right_successor(parent, limit);
+        ++j;
+      }
+      ++j;
+    }
+    bits.init();
+  }
+
+  [[nodiscard]] constexpr auto
+  root() const noexcept -> ssize_type
+  {
+    return 2;
+  }
+
+  [[nodiscard]] constexpr auto
+  first_child(ssize_type v) const noexcept -> ssize_type
+  {
+    [[maybe_unused]] pre: assert(!is_leaf(v));
+    return child(v, 0);
+  }
+
+  [[nodiscard]] constexpr auto
+  last_child(ssize_type v) const noexcept -> ssize_type
+  {
+    [[maybe_unused]] pre: assert(!is_leaf(v));
+    return child(v, children(v) - 1);
+  }
+
+  [[nodiscard]] constexpr auto
+  next_sibling(ssize_type v) const noexcept -> ssize_type
+  {
+    [[maybe_unused]] pre: assert(v != root() && v != last_child(parent(v)));
+    return succ_0(bits, v) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  prev_sibling(ssize_type v) const noexcept -> ssize_type
+  {
+    [[maybe_unused]] pre: assert(v != root() && v != first_child(parent(v)));
+    return pred_0(bits, v - 2) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  parent(ssize_type v) const noexcept -> ssize_type
+  {
+    [[maybe_unused]] pre: assert(v != root());
+    const auto j = bits.select_1(bits.rank_0(v - 1));
+    return pred_0(bits, j) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  is_leaf(ssize_type v) const noexcept -> bool
+  {
+    return !bits.bitread(v);
+  }
+
+  [[nodiscard]] constexpr auto
+  nodemap(ssize_type v) const noexcept -> index_type
+  {
+    return bits.rank_0(v - 1);
+  }
+
+  [[nodiscard]] constexpr auto
+  nodeselect(index_type i) const noexcept -> ssize_type
+  {
+    return bits.select_0(i) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  children(ssize_type v) const noexcept -> ssize_type
+  {
+    return succ_0(bits, v) - v;
+  }
+
+  [[nodiscard]] constexpr auto
+  child(ssize_type v, ssize_type n) const noexcept -> ssize_type
+  {
+    [[maybe_unused]] pre: assert(n >= 0 && n < children(v));
+    return bits.select_0(bits.rank_1(v + n)) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  child_rank(ssize_type v) const noexcept -> ssize_type
+  {
+    [[maybe_unused]] pre: assert(v != root());
+    const auto j = bits.select_1(bits.rank_0(v) - 1);
+    return j - pred_0(bits, j) - 1;
+  }
+};
+
+struct lca_impl
+{
+  template <bitvector B = basic_bitvector<unsigned int, ssize_t<memory_view>>>
+  [[nodiscard]] constexpr auto
+  operator()(louds<B> const& t, ssize_t<louds<B>> u, ssize_t<louds<B>> v) const noexcept -> ssize_t<louds<B>>
+  {
+    while (u != v) {
+      if (u > v) u = t.parent(u); else v = t.parent(v);
+    }
+    return u;
+  }
+};
+
+inline constexpr lca_impl lca{};
+
+}
+
+#endif

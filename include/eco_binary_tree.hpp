@@ -1,0 +1,331 @@
+#ifndef ECO_BINARY_TREE_
+#define ECO_BINARY_TREE_
+
+#include <algorithm>
+#include <cassert>
+
+#include "eco_concepts.hpp"
+#include "eco_bitvector.hpp"
+#include "eco_type_traits.hpp"
+
+namespace eco::inline cpp20 {
+
+template <bitvector B = basic_bitvector<>>
+class binary_louds
+{
+  B bits;
+
+public:
+  using ssize_type = ssize_t<memory_view>;
+  using index_type = ssize_t<memory_view>;
+
+  [[nodiscard]] constexpr
+  binary_louds() noexcept = default;
+
+  template <bidirectional_bicursor cur>
+  [[nodiscard]] constexpr
+  binary_louds(cur root, ssize_type n)
+    : bits{2 * n}
+  {
+    if (!root) return;
+    list_pool<cur, ssize_type> queue;
+    auto head = queue.allocate_node(root, queue.limit());
+    auto tail = head;
+    ssize_type i{0};
+    while (tail != queue.limit()) {
+      root = queue.value(tail);
+      if (has_left_successor(root)) {
+        head = queue.allocate_node(left_successor(root), head);
+        bits.bitset(i);
+      }
+      ++i;
+      if (has_right_successor(root)) {
+        head = queue.allocate_node(right_successor(root), head);
+        bits.bitset(i);
+      }
+      ++i;
+      auto prev = queue.prev(tail);
+      queue.free_node(tail);
+      tail = prev;
+    }
+    bits.init();
+  }
+
+  [[nodiscard]] constexpr auto
+  root() const noexcept -> ssize_type
+  {
+    return 0;
+  }
+
+  [[nodiscard]] constexpr auto
+  parent(ssize_type v) const noexcept -> ssize_type
+  {
+    [[maybe_unused]] pre: assert(v != root());
+    return bits.select_1(v - 1) / 2;
+  }
+
+  [[nodiscard]] constexpr auto
+  has_left_child(ssize_type v) const noexcept -> bool
+  {
+    return bits.bitread(2 * v);
+  }
+
+  [[nodiscard]] constexpr auto
+  has_right_child(ssize_type v) const noexcept -> bool
+  {
+    return bits.bitread(2 * v + 1);
+  }
+
+  [[nodiscard]] constexpr auto
+  is_leaf(ssize_type v) const noexcept -> bool
+  {
+    return !has_left_child(v) && !has_right_child(v);
+  }
+
+  [[nodiscard]] constexpr auto
+  left_child(ssize_type v) const noexcept -> index_type
+  {
+    [[maybe_unused]] pre: assert(has_left_child(v));
+    return bits.rank_1(2 * v) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  right_child(ssize_type v) const noexcept -> index_type
+  {
+    [[maybe_unused]] pre: assert(has_right_child(v));
+    return bits.rank_1(2 * (v + 1));
+  }
+
+  [[nodiscard]] constexpr auto
+  child_label(ssize_type v) const noexcept -> ssize_type
+  {
+    if (v == 0) return ssize_type{-1};
+    return (bits.select_1(v - 1) % 2);
+  }
+};
+
+template <bitvector B = basic_bitvector<>>
+class binary_louds_cursor
+{
+  binary_louds<B> const* tree = nullptr;
+  ssize_t<binary_louds<B>> node{};
+
+public:
+  using weight_type = decltype(node);
+
+  [[nodiscard]] constexpr
+  binary_louds_cursor() noexcept = default;
+
+  [[nodiscard]] explicit constexpr
+  binary_louds_cursor(binary_louds<B> const& t) noexcept
+    : tree{&t}
+    , node{t.root()}
+  {}
+
+  [[nodiscard]] constexpr
+  binary_louds_cursor(binary_louds<B> const& t, weight_type v) noexcept
+    : tree{&t}
+    , node{v}
+  {}
+
+  [[nodiscard]] constexpr auto
+  operator==(binary_louds_cursor const&) const noexcept -> bool = default;
+
+  [[nodiscard]] explicit constexpr
+  operator bool() const
+  {
+    return tree != nullptr;
+  }
+
+  [[nodiscard]] friend constexpr auto
+  has_left_successor(binary_louds_cursor i) noexcept -> bool
+  {
+    [[maybe_unused]] pre: assert(bool{i});
+    return i.tree->has_left_child(i.node);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  has_right_successor(binary_louds_cursor i) noexcept -> bool
+  {
+    [[maybe_unused]] pre: assert(bool{i});
+    return i.tree->has_right_child(i.node);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  left_successor(binary_louds_cursor i) noexcept -> binary_louds_cursor<B>
+  {
+    [[maybe_unused]] pre: assert(bool{i} && has_left_successor(i));
+    return {*i.tree, i.tree->left_child(i.node)};
+  }
+
+  [[nodiscard]] friend constexpr auto
+  right_successor(binary_louds_cursor i) noexcept -> binary_louds_cursor<B>
+  {
+    [[maybe_unused]] pre: assert(bool{i} && has_right_successor(i));
+    return {*i.tree, i.tree->right_child(i.node)};
+  }
+
+  [[nodiscard]] friend constexpr auto
+  has_predecessor(binary_louds_cursor i) noexcept -> bool
+  {
+    [[maybe_unused]] pre: assert(bool{i});
+    return i.node != i.tree->root();
+  }
+
+  [[nodiscard]] friend constexpr auto
+  predecessor(binary_louds_cursor i) noexcept -> binary_louds_cursor<B>
+  {
+    [[maybe_unused]] pre: assert(bool{i} && has_predecessor(i));
+    return {*i.tree, i.tree->parent(i.node)};
+  }
+
+  [[nodiscard]] constexpr auto
+  is_left_successor() noexcept -> bool
+  {
+    return tree->child_label(node) == 0;
+  }
+
+  [[nodiscard]] constexpr auto
+  is_right_successor() noexcept -> bool
+  {
+    return tree->child_label(node) == 1;
+  }
+};
+
+static_assert(eco::bidirectional_bicursor<binary_louds_cursor<basic_bitvector<unsigned int, ssize_t<memory_view>>>>);
+
+enum class df_visit
+{
+  pre,
+  in,
+  post
+};
+
+struct is_left_successor_impl
+{
+  template <bidirectional_bicursor C>
+  [[nodiscard]] constexpr auto
+  operator()(C cur) const -> bool
+  {
+    [[maybe_unused]] pre: assert(has_predecessor(cur));
+    auto pred = predecessor(cur);
+    return has_left_successor(pred) && left_successor(pred) == cur;
+  }
+
+  template <bitvector B>
+  [[nodiscard]] constexpr auto
+  operator()(binary_louds_cursor<B> cur) const -> bool
+  {
+    return cur.is_left_successor();
+  }
+};
+
+inline constexpr is_left_successor_impl is_left_successor{};
+
+struct is_right_successor_impl
+{
+  template <bidirectional_bicursor C>
+  [[nodiscard]] constexpr auto
+  operator()(C cur) const -> bool
+  {
+    [[maybe_unused]] pre: assert(has_predecessor(cur));
+    auto pred = predecessor(cur);
+    return has_right_successor(pred) && right_successor(pred) == cur;
+  }
+
+  template <bitvector B>
+  [[nodiscard]] constexpr auto
+  operator()(binary_louds_cursor<B> cur) const -> bool
+  {
+    return cur.is_right_successor();
+  }
+};
+
+inline constexpr is_right_successor_impl is_right_successor{};
+
+struct tree_traverse_step_impl
+{
+  template <bidirectional_bicursor C>
+  constexpr auto
+  operator()(df_visit& v, C& cur) const -> int
+  {
+    switch (v)
+    {
+    case df_visit::pre:
+      if (has_left_successor(cur)) {
+        cur = left_successor(cur);
+        return 1;
+      } else {
+        v = df_visit::in;
+        return 0;
+      }
+    case df_visit::in:
+      if (has_right_successor(cur)) {
+        v = df_visit::pre;
+        cur = right_successor(cur);
+        return 1;
+      } else {
+        v = df_visit::post;
+        return 0;
+      }
+    case df_visit::post:
+      if (is_left_successor(cur)) {
+        v = df_visit::in;
+      }
+      cur = predecessor(cur);
+      return -1;
+    }
+
+    return 0;
+  }
+};
+
+inline constexpr tree_traverse_step_impl tree_traverse_step{};
+
+struct tree_weight_impl
+{
+  template <bidirectional_bicursor C>
+  [[nodiscard]] constexpr auto
+  operator()(C cur) const noexcept -> weight_type_t<C>
+  {
+    if (!cur) return weight_type_t<C>(0);
+    auto root{cur};
+    auto v = df_visit::pre;
+    weight_type_t<C> n(1);
+    do
+    {
+      tree_traverse_step(v, cur);
+      if (v == df_visit::pre) ++n;
+    } while (cur != root || v != df_visit::post);
+    return n;
+  }
+};
+
+inline constexpr tree_weight_impl tree_weight{};
+
+struct tree_height_impl
+{
+  template <bidirectional_bicursor C>
+  [[nodiscard]] constexpr auto
+  operator()(C cur) const noexcept -> weight_type_t<C>
+  {
+    using N = weight_type_t<C>;
+    if (!cur) return N(0);
+    auto root{cur};
+    auto v = df_visit::pre;
+    N n(1);
+    N m(1);
+    do
+    {
+      m = (m - N(1)) + N(tree_traverse_step(v, cur) + 1);
+      n = std::max(n, m);
+    } while (cur != root || v != df_visit::post);
+    return n;
+  }
+};
+
+inline constexpr tree_height_impl tree_height{};
+
+}
+
+#endif

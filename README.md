@@ -44,6 +44,23 @@ making the last element of the original range the new head.
 
 Example: `[1 2 3 4] <reverse_append> [5 6 7 8] -> [4 3 2 1 5 6 7 8]`
 
+## Tree algorithms
+
+`tree_traverse_step` takes a `df_visit` enumeration and a
+`bidirectional_bicursor`.
+It traverses a binary tree in depth-first order, step by step, returning the
+change in tree height on the taken traversal step.
+The `df_visit` is updated to indicate the visitation step, (each node is visited
+3 times, as `df_visit::pre`, `df_visit::in`, `df_visit::post`) and the
+`bidirectional_bicursor` is updated to point to the tree node
+visited.
+
+`tree_weight` takes a `bidirectional_bicursor`.
+It calculates the weight of a tree rooted at the cursor.
+
+`tree_height` takes a `bidirectional_bicursor`.
+It calculates the height of a tree rooted at the cursor.
+
 # Data structures
 
 ## Array
@@ -63,10 +80,18 @@ it from reusing previously allocated memory blocks.
 - Support for custom allocators (as defined by concepts in this library) but
 without support for storing stateful allocators in the `array` itself, which
 makes it easier to reason about ownership semantics.
+- No support for incomplete value type.
+
+The type parameter `T` is the type of objects stored in the `array`.
 
 `array<T>` models `std::ranges::contiguous_range<T>`.
 
-The type parameter `T` is the type of objects stored in the `array`.
+`array<T>` models `std::semiregular` if `std::ranges::range_value_t<T>` does.
+
+`array<T>` models `std::regular` if `std::ranges::range_value_t<T>` does.
+
+`array<T>` models `std::totally_ordered` if `std::ranges::range_value_t<T>`
+does.
 
 The value parameter `ga` is the growth algorithm used when more space is needed.
 `default_array_growth` is a function object that takes a non-negative capacity
@@ -82,15 +107,40 @@ The member type `value_type` is the type of objects stored in the `array`.
 The member type `size_type` is a signed type large enough to represent the
 maximum possible size of the `array`.
 
+`array` can be constructed with an initial capacity, or constructed and assigned
+from a  `std::ranges::forward_range`.
+
+`array` supports the following operations:
+
+- `swap(x)` swaps the `array` with `array` `x`.
+- `bool{x}` returns `true` iff the `array` is not empty.
+- `x[i]` accesses the element at index `i`.
+- `begin()` returns an iterator to the beginning of the `array`.
+- `begin()` returns an iterator to the end of the `array`.
+- `size()` returns the size of the `array`.
+- `capacity()` returns the size of the allocated space in the `array`.
+- `max_size()` returns the maximum number of elements the `array` can contain.
+- `reserve(i)` ensures there is reserved space for up to `i` elements.
+- `shrink_to_fit()` ensures `capacity() == size()`.
+- `push_back(args)` appends an element constructed from `args`.
+- `pop_back()` removes the last element.
+- `append(range)` appends a `std::forward_range` of elements.
+- `insert(pos, args)` inserts an element constructed from `args` after `pos`.
+- `insert(pos, range)` inserts a `std::forward_range` of elements after `pos`.
+- `erase(pos)` erases the element at `pos`.
+- `erase(range)` erases a range of elements (`range` must be in the `array`).
+- `clear()` erases all elements in the `array`, without changing capacity.
+- `resize(x, size, value)` resizes `x`, appending `value`s if `size > x.size()`.
+
 ## Bitvectors
 
 `bitvector` describes a `std::regular` type with the following operations:
 
-- `size()` returns the number of bits stored.
-- `bitread(i)` reads bit `i`.
+- `size()` returns the number of stored bits.
+- `bitread(i)` returns bit `i`.
 - `bitset(i)` sets bit `i` to `1`.
 - `bitclear(i)` sets bit `i` to `0`.
-- `init()` perform post-construction initialization for faster access.
+- `init()` performs post-construction initialization for faster access.
 - `rank_0(i)` returns the number of 0-bits in the range `[0, i)`.
 - `rank_1(i)` returns the number of 1-bits in the range `[0, i)`.
 - `select_0(i)` returns the position of the `i`:th 0-bit.
@@ -100,7 +150,24 @@ maximum possible size of the `array`.
 `basic_bitvector` is a type constructor for a `bitvector` that stores bits in an
 uncompressed form.
 
-# Trees
+## Trees
+
+### Binary trees
+
+`binary_louds` (Level-Order Unary Degree Sequence) is a compact representation
+of a binary tree. It can be constructed from a binary tree of a known size with
+a pair of `bidirectional_bicursor`s.
+
+- `root()` returns the root node of the tree.
+- `parent(v)` returns the parent of node `v`.
+- `has_left_child(v)` returns `true` iff node `v` has a left child.
+- `has_right_child(v)` returns `true` iff node `v` has a right child.
+- `is_leaf(v)` returns `true` iff node `v` is a leaf.
+- `left_child(v)` returns the left child of node `v`.
+- `right_child(v)` returns the right child of node `v`.
+- `child_label(v)` returns the label of the edge leading to node `v`.
+
+### Ordinal trees
 
 `louds` (Level-Order Unary Degree Sequence) is a compact representation of an
 ordinal tree. It can be constructed from a tree of a known size with a pair of
@@ -122,24 +189,11 @@ and `right branch` points to the next sibling.
 its parent.
 - `lca(t, u, v)` returns the lowest common ancestor of nodes `u` and `v` in `t`.
 
-`binary_louds` (Level-Order Unary Degree Sequence) is a compact representation
-of a binary tree. It can be constructed from a binary tree of a known size with
-a pair of `bidirectional_bicursor`s.
-
-- `root()` returns the root node of the tree.
-- `parent(v)` returns the parent of node `v`.
-- `has_left_child(v)` returns `true` iff node `v` has a left child.
-- `has_right_child(v)` returns `true` iff node `v` has a right child.
-- `is_leaf(v)` returns `true` iff node `v` is a leaf.
-- `left_child(v)` returns the left child of node `v`.
-- `right_child(v)` returns the right child of node `v`.
-- `child_label(v)` returns the label of the edge leading to node `v`.
-
-# Sequences
+## Sequences
 
 Components for implemention of sequence types, such as containers.
 
-## Extents
+### Extents
 
 `extent` is a type constructor for storage of arrays of objects in a contiguous
 memory region, where elements are prefixed by a header that keeps track of the
@@ -175,7 +229,7 @@ By default it is `default_array_growth`.
 The value parameter `alloc` is the allocator object used to manage the owned
 memory. `default_array_alloc` uses `malloc_allocator`.
 
-## List pools
+### List pools
 
 `forward_list_pool` is a type constructor for a pool of singly linked list nodes,
 stored in a contiguous memory region. It uses `extent` to store the list nodes.
@@ -205,18 +259,22 @@ the pool minimizes the memory footprint and makes the pool more cache-friendly.
 
 # Memory
 
-The `eco.memory` module contains components for raw memory management. These are
-low-level components used in the implementation of dynamic data structures.
+Low-level memory components used in the implementation of eco data structures.
 
 ## Memory regions
 
 `memory_view` is a view of a (logically) contiguous memory region beginning at
-`first` and containing `size` bytes of data. It models `std::ranges::view` and
-is the type used throughout the library to describe memory regions with
-arbitrary contents.
+`first` and containing `size` bytes of data. It is the type used throughout the
+library to describe memory regions with arbitrary contents.
 `memory_view` models `std::totally_ordered` and is ordered first by memory
-address and second by size. A boolean test on a `memory_view` checks if the
-contained memory address is not equal to `nullptr`.
+address and second by size.
+`memory_view` also models `std::ranges::contiguous_range`.
+A boolean test on a `memory_view` checks if the contained memory address is not
+equal to `nullptr`.
+`begins_in(x)` returns `true` iff the `memory_view` begins in `memory_view` `x`.
+`ends_in(x)` returns `true` iff the `memory_view` ends in `memory_view` `x`.
+`is_in` returns `true` iff the `memory_view` begins and ends in `memory_view`
+`x`.
 
 ## Allocators
 
@@ -242,17 +300,29 @@ It returns a memory view testable as `false` if reallocation fails.
 `is_owner` that takes a `memory_view` and tells if the associated memory was
 allocated with this object or not.
 
+### malloc_allocator
+
 `malloc_allocator` is a type that uses `std::malloc` and associated functions
 to manage dynamic memory. It models `deallocatable_allocator` and
-`reallocatable_allocator`. It is the type of the default allocators used in eco
-containers.
+`reallocatable_allocator`.
+
+This is the default allocators used in eco containers.
+
+### arena_allocator
 
 `arena_allocator` is a type constuctor for allocators that pre-allocate a given
 number of bytes on construction, using a given `deallocatable_allocator`. It
 models `deallocatable_allocator`.
-`allocate` allocates from the beginning of previously unused memory in this
-arena, and `deallocate` does nothing. The allocated arena will be deallocated
-on destruction.
+
 This allocator is useful for situations where allocation and deallocation must
 be as fast as possible and the total amount of memory that will be used is
 known beforehand.
+
+`can_allocate(n)` returns `true` iff `n` bytes can still be allocated.
+
+`allocate` allocates from the beginning of previously unused memory in this
+arena.
+
+`deallocate` does nothing.
+
+`deallocate_all` deallocates the entire arena.
