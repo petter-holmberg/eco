@@ -65,10 +65,9 @@ public:
     : header{capacity}
   {}
 
-  template <typename R>
+  template <std::ranges::forward_range R>
     requires
       (!std::same_as<R, array>) &&
-      std::ranges::forward_range<R> &&
       std::constructible_from<T, std::ranges::range_value_t<R>>
   [[nodiscard]] explicit constexpr
   array(R&& range) noexcept(std::is_nothrow_copy_constructible_v<std::ranges::range_value_t<R>>)
@@ -82,10 +81,9 @@ public:
     [[maybe_unused]] post_1: assert(is_full());
   }
 
-  template <typename R>
+  template <std::ranges::forward_range R>
     requires
       (!std::same_as<R, array>) &&
-      std::ranges::forward_range<R> &&
       std::constructible_from<T, std::ranges::range_value_t<R>>
   constexpr auto
   operator=(R&& range) noexcept(std::is_nothrow_copy_constructible_v<std::ranges::range_value_t<R>>) -> array&
@@ -251,10 +249,8 @@ public:
     header.pop_back();
   }
 
-  template <typename R>
-    requires
-      std::ranges::forward_range<R> &&
-      std::constructible_from<T, std::ranges::range_value_t<R>>
+  template <std::ranges::forward_range R>
+    requires std::constructible_from<T, std::ranges::range_value_t<R>>
   constexpr auto
   append(R&& range) -> T*
   {
@@ -269,7 +265,7 @@ public:
   constexpr auto
   insert(T const* pos, Args &&...args) -> T*
   {
-    // pre axiom: "pos within [begin(), end())"
+    // pre axiom: "pos within [begin(), end()]"
     auto df{pos - begin()};
     auto dm{size()};
     push_back(std::forward<Args>(args)...);
@@ -277,14 +273,12 @@ public:
     // post axiom: bool{*this}
   }
 
-  template <typename R>
-    requires
-      std::ranges::forward_range<R> &&
-      std::constructible_from<T, std::ranges::range_value_t<R>>
+  template <std::ranges::forward_range R>
+    requires std::constructible_from<T, std::ranges::range_value_t<R>>
   constexpr auto
   insert(T const* pos, R&& range) -> T*
   {
-    // pre axiom: "pos within [begin(), end())"
+    // pre axiom: "pos within [begin(), end()]"
     // pre axiom: "range not overlapped with [begin(), end())"
     auto const df{pos - begin()};
     auto const dm{size()};
@@ -302,10 +296,8 @@ public:
     // post axiom: "capacity() unchanged"
   }
 
-  template <typename R>
-    requires
-      std::ranges::range<R> &&
-      std::same_as<T, std::ranges::range_value_t<R>>
+  template <std::ranges::range R>
+    requires std::same_as<T, std::ranges::range_value_t<R>>
   constexpr auto
   erase(R&& range) noexcept -> T*
   {
@@ -337,10 +329,9 @@ swap(array<T, ga, alloc>& x, array<T, ga, alloc>& y) noexcept
   x.swap(y);
 }
 
-template <typename T, auto ga, auto& alloc>
+template <std::copy_constructible T, auto ga, auto& alloc>
 constexpr void
 resize(array<T, ga, alloc>& x, ssize_t<array<T, ga, alloc>> size, value_t<array<T, ga, alloc>> const& value = T{})
-  requires std::copy_constructible<T>
 {
   if (x.size() < size) {
     x.reserve(size);

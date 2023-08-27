@@ -122,42 +122,42 @@ class extent
   [[nodiscard]] constexpr auto
   header() noexcept -> header_t*
   {
-    // pre: assert(start);
+    [[maybe_unused]] pre: assert(start);
     return std::bit_cast<header_t*>(std::bit_cast<std::byte*>(start) - header_byte_size());
   }
 
   [[nodiscard]] constexpr auto
   header() const noexcept -> header_t const*
   {
-    // pre: assert(start);
+    [[maybe_unused]] pre: assert(start);
     return std::bit_cast<header_t*>(std::bit_cast<std::byte*>(start) - header_byte_size());
   }
 
   [[nodiscard]] constexpr auto
   size_ref() noexcept -> Size&
   {
-    // pre: assert(start);
+    [[maybe_unused]] pre: assert(start);
     return header()->size;
   }
 
   [[nodiscard]] constexpr auto
   size_ref() const noexcept -> Size const&
   {
-    // pre: assert(start);
+    [[maybe_unused]] pre: assert(start);
     return header()->size;
   }
 
   [[nodiscard]] constexpr auto
   capacity_ref() noexcept -> Size&
   {
-    // pre: assert(start);
+    [[maybe_unused]] pre: assert(start);
     return header()->capacity;
   }
 
   [[nodiscard]] constexpr auto
   capacity_ref() const noexcept -> Size const&
   {
-    // pre: assert(start);
+    [[maybe_unused]] pre: assert(start);
     return header()->capacity;
   }
 
@@ -165,7 +165,7 @@ class extent
   metadata_ref() noexcept -> Metadata&
     requires (!std::same_as<Metadata, std::monostate>)
   {
-    // pre: assert(start);
+    [[maybe_unused]] pre: assert(start);
     return header()->metadata;
   }
 
@@ -173,7 +173,7 @@ class extent
   metadata_ref() const noexcept -> Metadata const&
     requires (!std::same_as<Metadata, std::monostate>)
   {
-    // pre: assert(start);
+    [[maybe_unused]] pre: assert(start);
     return header()->metadata;
   }
 
@@ -251,7 +251,7 @@ private:
   [[nodiscard]] constexpr auto
   construct(Size new_capacity) const -> T*
   {
-    // pre: assert(new_capacity >= 0);
+    [[maybe_unused]] pre: assert(new_capacity >= 0);
     auto const memory{alloc.allocate(header_byte_size() + new_capacity * sizeof(T))};
     auto new_header{std::bit_cast<header_t*>(memory.begin())};
     new_header->size = size();
@@ -282,7 +282,7 @@ private:
   constexpr void
   move(Size n_new_elements)
   {
-    // pre: assert(new_capacity >= 0);
+    [[maybe_unused]] pre: assert(n_new_elements >= 0);
     auto new_start{construct(std::invoke(ga, capacity(), n_new_elements))};
     if (start) {
       if constexpr (!std::same_as<Metadata, std::monostate>) {
@@ -296,9 +296,9 @@ private:
   constexpr void
   move(Size n_new_elements, Size offset)
   {
-    // pre:
-    // assert(n_new_elements >= 0);
-    // assert(offset >= 0 && offset <= size());
+    [[maybe_unused]] pre:
+      assert(n_new_elements >= 0);
+      assert(offset >= 0 && offset <= size());
     auto new_start{construct(std::invoke(ga, capacity(), n_new_elements))};
     if (start) {
       copier.move(start, start + offset, new_start);

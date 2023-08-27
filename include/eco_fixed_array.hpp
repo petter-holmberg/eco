@@ -1,0 +1,1000 @@
+#ifndef ECO_FIXED_ARRAY_
+#define ECO_FIXED_ARRAY_
+
+#include <algorithm>
+#include <cassert>
+#include <climits>
+#include <concepts>
+#include <functional>
+#include <limits>
+#include <ranges>
+#include <variant>
+
+#include "eco_allocator.hpp"
+#include "eco_extent.hpp"
+#include "eco_memory.hpp"
+#include "eco_type_traits.hpp"
+#include "eco_bit.hpp"
+
+namespace eco::inline cpp20 {
+
+template <std::integral T, std::integral U>
+[[nodiscard]] constexpr auto
+div_ceil(T x, U y) -> std::common_type_t<T, U>
+{
+  return !!x + ((x - !!x) / y);
+}
+
+template
+<
+  int w,
+  std::unsigned_integral T = unsigned long int,
+  auto ga = default_array_growth,
+  auto& alloc = default_array_alloc
+>
+requires (w > 0 && w < bit_size_v<T>)
+class fixed_array
+{
+public:
+  using value_type = T;
+  using ssize_type = ssize_t<memory_view>;
+
+  class iterator;
+  class const_iterator;
+
+private:
+  extent<T, ssize_type, ssize_type, default_array_copy<T>, ga, alloc> header;
+
+  struct writer
+  {
+    ssize_type n_elements;
+
+    [[nodiscard]] explicit constexpr
+    writer(ssize_type n)
+      : n_elements{n}
+    {}
+
+    constexpr void
+    operator()(T* dst)
+    {
+      std::ranges::fill_n(dst, n_elements, 0);
+    }
+  };
+
+  [[nodiscard]] static constexpr auto
+  read(T const* pos, std::uint8_t i) -> T
+  {
+    if constexpr(bit_size_v<T> % w == 0) {
+      return bits_read<w>(i, *pos);
+    } else {
+      if (i + w <= bit_size_v<T>) {
+        return bits_read<w>(i, *pos);
+      } else {
+        return bits_read_straddled<w>(i, *pos, *(pos + 1));
+      }
+    }
+  }
+
+  static constexpr void
+  write(T x, T* pos, std::uint8_t i)
+  {
+    if constexpr(bit_size_v<T> % w == 0) {
+      bits_write<w>(i, *pos, x);
+    } else {
+      if (i + w <= bit_size_v<T>) {
+        bits_write<w>(i, *pos, x);
+      } else {
+        bits_write_straddled<w>(i, *pos, *(pos + 1), x);
+      }
+    }
+  }
+
+  template <std::ranges::forward_range R>
+    requires
+      (!std::same_as<R, fixed_array>) &&
+      std::unsigned_integral<std::ranges::range_value_t<R>>
+  constexpr auto
+  write_range(R&& range, T* pos, std::uint8_t i) noexcept -> iterator
+  {
+    for (const auto& x : range) {
+      write(x, pos, i);
+      i += w;
+      if (i >= bit_size_v<T>) {
+        i -= bit_size_v<T>;
+        ++pos;
+      }
+    }
+    return iterator{pos, i};
+  }
+
+  [[nodiscard]] constexpr auto
+  is_full() const noexcept -> bool
+  {
+    return (header.unused_capacity() == 0);
+  }
+
+public:
+  class reference
+  {
+    T* const pos;
+    std::uint8_t const offset;
+
+  public:
+    using value_type = T;
+
+    [[nodiscard]] constexpr
+    reference(value_type* pos, uint8_t offset)
+      : pos{pos}, offset{offset}
+    {}
+
+    constexpr auto
+    operator=(value_type x) -> reference&
+    {
+      fixed_array::write(x, pos, offset);
+      return *this;
+    };
+
+    constexpr auto
+    operator=(const reference& x) -> reference&
+    {
+      return *this = value_type(x);
+    };
+
+    constexpr
+    operator value_type() const
+    {
+      return fixed_array::read(pos, offset);
+    }
+
+    constexpr auto
+    operator++() -> reference&
+    {
+      fixed_array::write(fixed_array::read(pos, offset, w) + 1, pos, offset);
+      return *this;
+    }
+
+    constexpr auto
+    operator++(int) -> value_type
+    {
+      value_type x{*this};
+      ++(*this);
+      return x;
+    }
+
+    constexpr auto
+    operator--() -> reference&
+    {
+      fixed_array::write(fixed_array::read(pos, offset) - 1, pos, offset);
+      return *this;
+    }
+
+    constexpr auto
+    operator--(int) -> value_type
+    {
+      value_type x{*this};
+      --(*this);
+      return x;
+    }
+
+    constexpr auto
+    operator+=(const value_type x) -> reference&
+    {
+      fixed_array::write(fixed_array::read(pos, offset) + x, pos, offset);
+      return *this;
+    }
+
+    constexpr auto
+    operator-=(const value_type x) -> reference&
+    {
+      fixed_array::write(fixed_array::read(pos, offset) - x, pos, offset);
+      return *this;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator==(const reference& x) const -> bool
+    {
+      return value_type{*this} == value_type(x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator!=(const reference& x) const -> bool
+    {
+      return !(*this == x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<(const reference& x) const -> bool
+    {
+      return value_type{*this} < value_type(x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>=(const reference& x) const -> bool
+    {
+      return !(*this < x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>(const reference& x) const -> bool
+    {
+      return (x < *this);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<=(const reference& x) const -> bool
+    {
+      return !(x < *this);
+    }
+  };
+
+  class iterator
+  {
+  public:
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = T;
+    using difference_type = typename fixed_array::ssize_type;
+    using reference = typename fixed_array::reference;
+    using pointer = reference*;
+
+    friend class const_iterator;
+
+  private:
+    value_type* pos;
+    std::uint8_t offset{};
+
+  public:
+    explicit constexpr
+    iterator(T* x = nullptr, difference_type i = 0) noexcept
+      : pos{(x != nullptr) ? x + (w * i) / bit_size_v<T> : nullptr}
+      , offset{std::uint8_t((w * i) % bit_size_v<T>)}
+    {}
+
+    [[nodiscard]] constexpr auto
+    operator*() const noexcept -> reference
+    {
+      return reference{pos, offset};
+    }
+
+    constexpr auto
+    operator++() noexcept -> iterator&
+    {
+      offset += w;
+      if (offset >= bit_size_v<T>) {
+        offset -= bit_size_v<T>;
+        ++pos;
+      }
+      return *this;
+    }
+
+    constexpr auto
+    operator++(int) noexcept -> iterator
+    {
+      iterator it = *this;
+      ++(*this);
+      return it;
+    }
+
+    constexpr auto
+    operator--() noexcept -> iterator&
+    {
+      if (offset < w) {
+        offset += bit_size_v<T>;
+        --pos;
+      }
+      offset -= w;
+      return *this;
+    }
+
+    constexpr auto
+    operator--(int) noexcept -> iterator
+    {
+      iterator it = *this;
+      --(*this);
+      return it;
+    }
+
+    constexpr auto
+    operator+=(difference_type i) noexcept -> iterator&
+    {
+      if (i < 0) {
+        return *this -= (-i);
+      } else {
+        difference_type n_bits{w * i};
+        pos += (n_bits / bit_size_v<T>);
+        offset += (n_bits % bit_size_v<T>);
+        if (offset >= bit_size_v<T>) {
+          offset -= bit_size_v<T>;
+          ++pos;
+        }
+        return *this;
+      }
+    }
+
+    constexpr auto
+    operator-=(difference_type i) noexcept -> iterator&
+    {
+      if (i < 0) {
+        return *this += (-i);
+      } else {
+        difference_type n_bits{w * i};
+        pos -= (n_bits / bit_size_v<T>);
+        if (offset < (n_bits % bit_size_v<T>)) {
+          offset += bit_size_v<T>;
+          --pos;
+        }
+        offset -= (n_bits % bit_size_v<T>);
+        return *this;
+      }
+    }
+
+    [[nodiscard]] constexpr auto
+    operator+(difference_type i) const noexcept -> iterator
+    {
+      iterator it{*this};
+      return it += i;
+    }
+
+    [[nodiscard]] friend constexpr auto
+    operator+(difference_type i, iterator it) noexcept -> iterator
+    {
+      return it + i;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator-(difference_type i) const noexcept -> iterator
+    {
+      iterator it{*this};
+      return it -= i;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator[](difference_type i) const noexcept -> reference
+    {
+      return *(*this + i);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator==(iterator it) const noexcept -> bool
+    {
+      return pos == it.pos && offset == it.offset;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator!=(iterator it) const noexcept -> bool
+    {
+      return !(*this == it);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<(iterator it) const noexcept -> bool
+    {
+      if (pos == it.pos) {
+        return offset < it.offset;
+      } else {
+        return pos < pos;
+      }
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>=(iterator it) const noexcept -> bool
+    {
+      return !(*this < it);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>(iterator it) const noexcept -> bool
+    {
+      return (it < *this);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<=(iterator it) const noexcept -> bool
+    {
+      return !(it < *this);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator-(iterator it) const noexcept -> difference_type
+    {
+      return (((pos - it.pos) * bit_size_v<T>) + offset - it.offset) / w;
+    }
+  };
+
+  class const_iterator
+  {
+  public:
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = T const;
+    using difference_type = typename fixed_array::ssize_type;
+    using reference = T const;
+    using pointer = reference*;
+
+  private:
+    value_type const* pos;
+    std::uint8_t offset{};
+
+  public:
+    explicit constexpr
+    const_iterator(T const* x = nullptr, difference_type i = 0) noexcept
+      : pos{(x != nullptr) ? x + (w * i) / bit_size_v<T> : nullptr}
+      , offset{std::uint8_t((w * i) % bit_size_v<T>)}
+    {}
+
+    explicit constexpr
+    const_iterator(iterator it) noexcept
+      : pos{it.pos}
+      , offset{it.offset}
+    {}
+
+    [[nodiscard]] constexpr auto
+    operator*() const noexcept -> reference
+    {
+      return read(pos, offset);
+    }
+
+    constexpr auto
+    operator++() noexcept -> const_iterator&
+    {
+      offset += w;
+      if (offset >= bit_size_v<T>) {
+        offset -= bit_size_v<T>;
+        ++pos;
+      }
+      return *this;
+    }
+
+    constexpr auto
+    operator++(int) noexcept -> const_iterator
+    {
+      iterator it = *this;
+      ++(*this);
+      return it;
+    }
+
+    constexpr auto
+    operator--() noexcept -> const_iterator&
+    {
+      if (offset < w) {
+        offset += bit_size_v<T>;
+        --pos;
+      }
+      offset -= w;
+      return *this;
+    }
+
+    constexpr auto
+    operator--(int) noexcept -> const_iterator
+    {
+      iterator it = *this;
+      --(*this);
+      return it;
+    }
+
+    constexpr auto
+    operator+=(difference_type i) noexcept -> const_iterator&
+    {
+      if (i < 0) {
+        return *this -= (-i);
+      } else {
+        difference_type n_bits{w * i};
+        pos += (n_bits / bit_size_v<T>);
+        offset += (n_bits % bit_size_v<T>);
+        if (offset >= bit_size_v<T>) {
+          offset -= bit_size_v<T>;
+          ++pos;
+        }
+        return *this;
+      }
+    }
+
+    constexpr auto
+    operator-=(difference_type i) noexcept -> const_iterator&
+    {
+      if (i < 0) {
+        return *this += (-i);
+      } else {
+        difference_type n_bits{w * i};
+        pos -= (n_bits / bit_size_v<T>);
+        if (offset < (n_bits % bit_size_v<T>)) {
+          offset += bit_size_v<T>;
+          --pos;
+        }
+        offset -= (n_bits % bit_size_v<T>);
+        return *this;
+      }
+    }
+
+    [[nodiscard]] constexpr auto
+    operator+(difference_type i) const noexcept -> const_iterator
+    {
+      const_iterator it{*this};
+      return it += i;
+    }
+
+    [[nodiscard]] friend constexpr auto
+    operator+(difference_type i, const_iterator it) noexcept -> const_iterator
+    {
+      return it + i;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator-(difference_type i) const noexcept -> const_iterator
+    {
+      const_iterator it{*this};
+      return it -= i;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator[](difference_type i) const noexcept -> reference
+    {
+      return *(*this + i);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator==(const_iterator it) const noexcept -> bool
+    {
+      return pos == it.pos && offset == it.offset;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator!=(const_iterator it) const noexcept -> bool
+    {
+      return !(*this == it);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<(const_iterator it) const noexcept -> bool
+    {
+      if (pos == it.pos) {
+        return offset < it.offset;
+      } else {
+        return pos < pos;
+      }
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>=(const_iterator it) const noexcept -> bool
+    {
+      return !(*this < it);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>(const_iterator it) const noexcept -> bool
+    {
+      return (it < *this);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<=(const_iterator it) const noexcept -> bool
+    {
+      return !(it < *this);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator-(const_iterator it) const noexcept -> difference_type
+    {
+      return (((pos - it.pos) * bit_size_v<T>) + offset - it.offset) / w;
+    }
+  };
+
+  [[nodiscard]] constexpr
+  fixed_array() noexcept = default;
+
+  [[nodiscard]] explicit constexpr
+  fixed_array(ssize_type capacity)
+    : header{div_ceil(w * capacity, bit_size_v<T>)}
+  {}
+
+  template <std::ranges::forward_range R>
+    requires
+      (!std::same_as<R, fixed_array>) &&
+      std::unsigned_integral<std::ranges::range_value_t<R>>
+  [[nodiscard]] explicit constexpr
+  fixed_array(R&& range) noexcept(std::is_nothrow_copy_constructible_v<std::ranges::range_value_t<R>>)
+    : fixed_array{std::ranges::ssize(range)}
+  {
+    header.insert_space(header.capacity(), writer{header.capacity()});
+    auto n_elements{std::ranges::ssize(range)};
+    if (n_elements > 0) {
+      *header.metadata() = n_elements;
+      write_range(std::forward<R>(range), header.begin(), 0);
+    }
+  }
+
+  template <std::ranges::forward_range R>
+    requires
+      (!std::same_as<R, fixed_array>) &&
+      std::constructible_from<T, std::ranges::range_value_t<R>>
+  constexpr auto
+  operator=(R&& range) noexcept(std::is_nothrow_copy_constructible_v<std::ranges::range_value_t<R>>) -> fixed_array&
+  {
+    auto n_elements{std::ranges::ssize(range)};
+    if (n_elements > 0) {
+      reserve(n_elements);
+      *header.metadata() = n_elements;
+      write_range(std::forward<R>(range), header.begin(), 0);
+    }
+    return *this;
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator==(fixed_array const& x, fixed_array const& y) noexcept -> bool
+  {
+    if (x.size() == y.size()) {
+      return x.header == y.header;
+    } else {
+      return false;
+    }
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator!=(fixed_array const& x, fixed_array const& y) noexcept -> bool
+  {
+    return !(x == y);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator<(fixed_array const& x, fixed_array const& y) noexcept -> bool
+  {
+    return std::lexicographical_compare(x.begin(), x.end(), y.begin(), y.end());
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator>=(fixed_array const& x, fixed_array const& y) noexcept -> bool
+  {
+    return !(x < y);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator>(fixed_array const& x, fixed_array const& y) noexcept -> bool
+  {
+    return y < x;
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator<=(fixed_array const& x, fixed_array const& y) noexcept -> bool
+  {
+    return !(y < x);
+  }
+
+  constexpr void
+  swap(fixed_array& x) noexcept
+  {
+    header.swap(x.header);
+  }
+
+  [[nodiscard]] explicit constexpr
+  operator bool() const noexcept
+  {
+    return size() > 0;
+  }
+
+  [[nodiscard]] constexpr auto
+  operator[](ssize_type n) noexcept -> reference
+  {
+    [[maybe_unused]] pre: assert(n < size());
+    auto const bit_offset{w * n};
+    return {header.begin() + bit_offset / bit_size_v<T>, std::uint8_t(bit_offset % bit_size_v<T>)};
+  }
+
+  [[nodiscard]] constexpr auto
+  operator[](ssize_type n) const noexcept -> T
+  {
+    [[maybe_unused]] pre: assert(n < size());
+    auto const bit_offset{w * n};
+    return read(header.begin() + bit_offset / bit_size_v<T>, bit_offset % bit_size_v<T>);
+  }
+
+  [[nodiscard]] constexpr auto
+  begin() noexcept -> iterator
+  {
+    return iterator{header.begin()};
+  }
+
+  [[nodiscard]] constexpr auto
+  begin() const noexcept -> const_iterator
+  {
+    return const_iterator{header.begin()};
+  }
+
+  [[nodiscard]] constexpr auto
+  cbegin() const noexcept -> const_iterator
+  {
+    return const_iterator{header.begin()};
+  }
+
+  [[nodiscard]] constexpr auto
+  end() noexcept -> iterator
+  {
+    return iterator{header.begin(), size()};
+  }
+
+  [[nodiscard]] constexpr auto
+  end() const noexcept -> const_iterator
+  {
+    return const_iterator{header.begin(), size()};
+  }
+
+  [[nodiscard]] constexpr auto
+  cend() const noexcept -> const_iterator
+  {
+    return const_iterator{header.begin(), size()};
+  }
+
+  [[nodiscard]] constexpr auto
+  size() const noexcept -> ssize_type
+  {
+    return header ? *header.metadata() : 0;
+  }
+
+  [[nodiscard]] constexpr auto
+  capacity() const noexcept -> ssize_type
+  {
+    return header.capacity() * bit_size_v<T> / w;
+  }
+
+  [[nodiscard]] constexpr auto
+  max_size() const noexcept -> ssize_type
+  {
+    return std::numeric_limits<ssize_type>::max() / sizeof(T);
+  }
+
+  constexpr void
+  reserve(ssize_type cap)
+  {
+    auto n_elements{div_ceil(w * cap, bit_size_v<T>) - header.capacity()};
+    if (n_elements > 0) {
+      header.adjust_unused_capacity(n_elements);
+      header.insert_space(n_elements, writer{n_elements});
+    }
+  }
+
+  constexpr void
+  shrink_to_fit()
+  {
+    if (!is_full()) {
+      if (*this) {
+        header.adjust_unused_capacity(0);
+      return;
+      } else {
+        header = {};
+      }
+    }
+    [[maybe_unused]] post: assert(is_full());
+  }
+
+  constexpr auto
+  push_back(T value) -> reference
+  {
+    auto bit_capacity{header.size() * bit_size_v<T> - w * size()};
+    T* pos;
+    std::uint8_t offset;
+    if (bit_capacity < w) {
+      header.push_back(T{});
+      if (bit_capacity == 0) {
+        pos = header.end() - 1;
+        offset = 0;
+      } else {
+        pos = header.end() - 2;
+        offset = bit_size_v<T> - bit_capacity;
+      }
+    } else {
+      assert(header);
+      auto bit_offset{w * size()};
+      pos = header.begin() + (bit_offset / bit_size_v<T>);
+      offset = (bit_offset % bit_size_v<T>);
+    }
+    write(value, pos, offset);
+    assert(header);
+    ++(*header.metadata());
+    return reference{pos, offset};
+  }
+
+  constexpr void
+  pop_back() noexcept
+  {
+    [[maybe_unused]] pre: assert(bool{*this});
+    (*this)[size() - 1] = T{};
+    if (w * size() - (header.size() - 1) * bit_size_v<T> < w) {
+      header.pop_back();
+    }
+    assert(header);
+    --(*header.metadata());
+  }
+
+  template <std::ranges::forward_range R>
+    requires std::constructible_from<T, std::ranges::range_value_t<R>>
+  constexpr auto
+  append(R&& range) -> iterator
+  {
+    // pre axiom: "range not overlapped with [begin(), end())"
+    if (*this) {
+      ssize_type n_bits{w * size()};
+      auto n_elements{std::ranges::ssize(range)};
+      if (n_elements > 0) {
+        auto cap{size() + n_elements};
+        reserve(cap);
+        assert(header);
+        *header.metadata() += n_elements;
+        return write_range(std::forward<R>(range), header.begin() + (n_bits / bit_size_v<T>), n_bits % bit_size_v<T>);
+      } else {
+        return end();
+      }
+    } else {
+      *this = std::forward<R>(range);
+      return end();
+    }
+  }
+
+  constexpr auto
+  insert(const_iterator pos, T value) -> iterator
+  {
+    // pre axiom: "pos within [begin(), end()]"
+    ssize_type n{pos - cbegin()};
+    reserve(size() + 1);
+    assert(header);
+    ++(*header.metadata());
+    auto dst{end()};
+    auto src{dst - 1};
+    auto lim{begin() + n};
+    while (dst != lim) {
+      --dst;
+      --src;
+      *dst = *src;
+    }
+    *dst = value;
+    return dst;
+  }
+
+  constexpr auto
+  insert(iterator pos, T value) -> iterator
+  {
+    return insert(const_iterator{pos}, value);
+  }
+
+  template <std::ranges::forward_range R>
+    requires std::constructible_from<T, std::ranges::range_value_t<R>>
+  constexpr auto
+  insert(const_iterator pos, R&& range) -> iterator
+  {
+    // pre axiom: "range not overlapped with [begin(), end())"
+    ssize_type n{pos - cbegin()};
+    auto n_elements{size() + std::ranges::ssize(range)};
+    reserve(n_elements);
+    if (header)
+    {
+      *header.metadata() = n_elements;
+    }
+    auto dst{end()};
+    auto src{dst - std::ranges::ssize(range)};
+    auto lim{begin() + (n + std::ranges::ssize(range))};
+    while (dst != lim) {
+      --dst;
+      --src;
+      *dst = *src;
+    }
+    ssize_type n_bits{w * n};
+    return write_range(std::forward<R>(range), header.begin() + (n_bits / bit_size_v<T>), n_bits % bit_size_v<T>);
+  }
+
+  template <std::ranges::forward_range R>
+    requires std::constructible_from<T, std::ranges::range_value_t<R>>
+  constexpr auto
+  insert(iterator pos, R&& range) -> iterator
+  {
+    return insert(const_iterator{pos}, std::forward<R>(range));
+  }
+
+  constexpr auto
+  erase(iterator pos) noexcept -> iterator
+  {
+    [[maybe_unused]] pre: assert(bool{*this});
+    // pre axiom: "pos within [begin(), end())"
+    auto dst{pos};
+    auto src{dst + 1};
+    auto lim{end()};
+    assert(header);
+    --(*header.metadata());
+    while (src != lim) {
+      *dst = *src;
+      ++dst;
+      ++src;
+    }
+    *dst = T{};
+    return dst;
+  }
+
+  constexpr auto
+  erase(const_iterator pos) noexcept -> iterator
+  {
+    // pre axiom: "pos within [begin(), end())"
+    return erase(const_iterator{pos});
+  }
+
+  template <std::ranges::range R>
+    requires std::same_as<T, std::ranges::range_value_t<R>>
+  constexpr auto
+  erase(R&& range) noexcept -> iterator
+  {
+    // pre axiom: "range within [begin(), end())"
+    auto dst{std::ranges::begin(range)};
+    auto src{dst + std::ranges::ssize(range)};
+    auto lim{end()};
+    assert(header);
+    *header.metadata() -= std::ranges::ssize(range);
+    while (src != lim) {
+      *dst = *src;
+      ++dst;
+      ++src;
+    }
+    src = dst;
+    while (dst != lim) {
+      *dst = T{};
+      ++dst;
+    }
+    return src;
+  }
+
+  constexpr void
+  clear() noexcept
+  {
+    header.erase_space(header.begin(), header.size());
+    if (header) {
+      *header.metadata() = 0;
+    }
+    // post axiom: "capacity() unchanged"
+  }
+};
+
+static_assert(std::totally_ordered<fixed_array<1>>);
+static_assert(std::ranges::random_access_range<fixed_array<1>>);
+static_assert(std::totally_ordered<fixed_array<1>::reference>);
+static_assert(std::random_access_iterator<fixed_array<1>::iterator>);
+static_assert(std::random_access_iterator<fixed_array<1>::const_iterator>);
+
+template <int w, std::unsigned_integral T, auto ga, auto& alloc>
+requires (w > 0 && w < bit_size_v<T>)
+constexpr void
+swap(fixed_array<w, T, ga, alloc>& x, fixed_array<w, T, ga, alloc>& y) noexcept
+{
+  x.swap(y);
+}
+
+template <int w, std::unsigned_integral T, auto ga, auto& alloc>
+requires (w > 0 && w < bit_size_v<T>)
+constexpr void
+resize(fixed_array<w, T, ga, alloc>& x, ssize_t<fixed_array<w, T, ga, alloc>> size, value_t<fixed_array<w, T, ga, alloc>> const& value = T{})
+  requires std::copy_constructible<T>
+{
+  if (x.size() < size) {
+    x.reserve(size);
+    size = size - x.size();
+    while (size != 0) {
+      x.push_back(value);
+      --size;
+    }
+  } else if (x.size() > size) {
+    size = x.size() - size;
+    while (size != 0) {
+      x.pop_back();
+      --size;
+    }
+  }
+}
+
+}
+
+namespace std {
+
+template <int w, std::unsigned_integral T, auto ga, auto& alloc>
+requires (w > 0 && w < eco::bit_size_v<T>)
+constexpr void
+swap(eco::fixed_array<w, T, ga, alloc>& x, eco::fixed_array<w, T, ga, alloc>& y) noexcept
+{
+  using eco::swap;
+  swap(x, y);
+}
+
+}
+
+#endif

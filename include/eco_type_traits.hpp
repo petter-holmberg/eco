@@ -33,6 +33,12 @@ struct iterator_type_traits
   using type = typename T::iterator_type;
 };
 
+template <typename T>
+struct const_iterator_type_traits
+{
+  using type = typename T::const_iterator_type;
+};
+
 }
 
 namespace eco::inline cpp20 {
@@ -51,6 +57,9 @@ using index_type_t = typename user::index_type_traits<T>::type;
 
 template <typename T>
 using iterator_t = typename user::iterator_type_traits<T>::type;
+
+template <typename T>
+using const_iterator_t = typename user::const_iterator_type_traits<T>::type;
 
 }
 

@@ -63,7 +63,9 @@ It calculates the height of a tree rooted at the cursor.
 
 # Data structures
 
-## Array
+## Arrays
+
+### `array`
 
 `array` is a type constructor for dynamic arrays, similar to `std::vector`,
 but with some key differences:
@@ -104,7 +106,7 @@ memory. `default_array_alloc` uses `malloc_allocator`.
 
 The member type `value_type` is the type of objects stored in the `array`.
 
-The member type `size_type` is a signed type large enough to represent the
+The member type `ssize_type` is a signed type large enough to represent the
 maximum possible size of the `array`.
 
 `array` can be constructed with an initial capacity, or constructed and assigned
@@ -116,7 +118,7 @@ from a  `std::ranges::forward_range`.
 - `bool{x}` returns `true` iff the `array` is not empty.
 - `x[i]` accesses the element at index `i`.
 - `begin()` returns an iterator to the beginning of the `array`.
-- `begin()` returns an iterator to the end of the `array`.
+- `end()` returns an iterator to the end of the `array`.
 - `size()` returns the size of the `array`.
 - `capacity()` returns the size of the allocated space in the `array`.
 - `max_size()` returns the maximum number of elements the `array` can contain.
@@ -130,6 +132,79 @@ from a  `std::ranges::forward_range`.
 - `erase(pos)` erases the element at `pos`.
 - `erase(range)` erases a range of elements (`range` must be in the `array`).
 - `clear()` erases all elements in the `array`, without changing capacity.
+- `resize(x, size, value)` resizes `x`, appending `value`s if `size > x.size()`.
+
+### `fixed_array`
+
+`fixed_array` is a type constructor for dynamic arrays of a fixed bit size. It
+stores `std::unsigned_integral` values (where some leftmost bits are unused)
+compactly. The key differences compared to an `array` are.
+
+- Only supports `std::unsigned_integral` values.
+- The bit-packing makes element access slower, but the smaller memory footprint
+makes the data more cache-friendly.
+- Elements are stored in an underlying `array` of `value_type`. When setting a
+capacity it may exceed the capacity required to store the given number of
+elements.
+- `bit_size_v` of the chosen `value_type` should ideally be a multiple of the
+chosen bit size, to avoid values straddling two elements of the underlying
+`array`.
+
+The value parameter `w` is the bit size of elements stored in the array. It
+satisfies `0 < w <= bit_size_v<T>`.
+
+The type parameter `T` is the type of objects stored in the `array`. It must
+model `std::unsigned_integral`.
+
+`array<T>` models `std::ranges::random_access_range<T>`.
+
+`array<T>` models `std::totally_ordered`.
+
+The value parameter `ga` is the growth algorithm used when more space is needed.
+`default_array_growth` is the default.
+
+The value parameter `alloc` is the allocator object used to manage the owned
+memory. `default_array_alloc` is the default.
+
+The member type `value_type` is the type of objects stored in the `fixed_array`.
+
+The member type `ssize_type` is a signed type large enough to represent the
+maximum possible size of the `fixed_array`.
+
+The member type `reference` is a proxy reference to elements of the
+`fixed_array`.
+
+The member type `iterator` is an iterator to elements of the `fixed_array`. It
+models `std::random_access_iterator`.
+
+The member type `const_iterator` is an iterator to elements of the `fixed_array`
+with immutable access to the elements. It models `std::random_access_iterator`.
+
+`fixed_array` can be constructed with an initial capacity, or constructed and
+assigned from a `std::ranges::forward_range`.
+
+- `swap(x)` swaps the `fixed_array` with `fixed_array` `x`.
+- `bool{x}` returns `true` iff the `fixed_array` is not empty.
+- `x[i]` accesses the element at index `i`.
+- `begin()` returns an iterator to the beginning of the `fixed_array`.
+- `cbegin()` returns an iterator to the beginning of the `fixed_array`.
+- `end()` returns an iterator to the end of the `fixed_array`.
+- `cend()` returns an iterator to the end of the `fixed_array`.
+- `size()` returns the size of the `fixed_array`.
+- `capacity()` returns the size of the allocated space in the `fixed_array`.
+- `max_size()` returns the approximate maximum number of elements the
+`fixed_array` can contain.
+- `reserve(i)` ensures there is reserved space for up to `i` elements.
+- `shrink_to_fit()` minimizes reserved space.
+- `push_back(args)` appends an element constructed from `args`.
+- `pop_back()` removes the last element.
+- `append(range)` appends a `std::forward_range` of elements.
+- `insert(pos, args)` inserts an element constructed from `args` after `pos`.
+- `insert(pos, range)` inserts a `std::forward_range` of elements after `pos`.
+- `erase(pos)` erases the element at `pos`.
+- `erase(range)` erases a range of elements (`range` must be in the
+`fixed_array`).
+- `clear()` erases all elements in the `fixed_array`, without changing capacity.
 - `resize(x, size, value)` resizes `x`, appending `value`s if `size > x.size()`.
 
 ## Bitvectors

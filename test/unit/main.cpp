@@ -25,6 +25,26 @@ test_regular(T const &x)
   assert(v == x);
 }
 
+template <std::totally_ordered T>
+void test_totally_ordered(T& x, T& y)
+{
+    test_regular(x);
+    test_regular(y);
+
+    assert(x != y);
+    assert(!(x == y));
+
+    assert(!(x < x));
+    assert(x < y);
+    assert(y > x);
+    assert(x <= y);
+    assert(y >= x);
+    assert(!(y < x));
+    assert(!(x > y));
+    assert(!(y <= x));
+    assert(!(x >= y));
+}
+
 struct ptree_node
 {
   int value;
@@ -94,6 +114,7 @@ set_right_successor(ptree_cursor i, ptree_cursor j)
   i.value->next_sibling = j.value;
 }
 
+#include "test_bit.hpp"
 #include "test_memory.hpp"
 #include "test_allocator.hpp"
 #include "test_extent.hpp"
@@ -101,6 +122,7 @@ set_right_successor(ptree_cursor i, ptree_cursor j)
 #include "test_forward_list_pool.hpp"
 #include "test_list_pool.hpp"
 #include "test_dlx.hpp"
+#include "test_fixed_array.hpp"
 #include "test_bitvector.hpp"
 #include "test_binary_tree.hpp"
 #include "test_ordinal_tree.hpp"
@@ -110,6 +132,7 @@ static_assert(eco::linked_bicursor<ptree_cursor>);
 
 int main()
 {
+  test_bit();
   test_memory();
   test_allocator();
   test_extent();
@@ -117,6 +140,18 @@ int main()
   test_forward_list_pool();
   test_list_pool();
   test_dlx();
+  test_fixed_array<3, std::uint8_t>();
+  test_fixed_array<4, std::uint8_t>();
+  test_fixed_array<7, std::uint8_t>();
+  test_fixed_array<4, std::uint16_t>();
+  test_fixed_array<8, std::uint16_t>();
+  test_fixed_array<15, std::uint16_t>();
+  test_fixed_array<5, std::uint32_t>();
+  test_fixed_array<16, std::uint32_t>();
+  test_fixed_array<31, std::uint32_t>();
+  test_fixed_array<6, std::uint64_t>();
+  test_fixed_array<32, std::uint64_t>();
+  test_fixed_array<63, std::uint64_t>();
   test_basic_bitvector();
   test_binary_louds();
   test_louds();
