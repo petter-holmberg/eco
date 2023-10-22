@@ -119,6 +119,7 @@ set_right_successor(ptree_cursor i, ptree_cursor j)
 #include "test_allocator.hpp"
 #include "test_extent.hpp"
 #include "test_array.hpp"
+#include "test_array_dict.hpp"
 #include "test_forward_list_pool.hpp"
 #include "test_list_pool.hpp"
 #include "test_dlx.hpp"
@@ -137,6 +138,7 @@ int main()
   test_allocator();
   test_extent();
   test_array();
+  test_array_dict();
   test_forward_list_pool();
   test_list_pool();
   test_dlx();

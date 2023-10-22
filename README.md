@@ -134,6 +134,68 @@ from a  `std::ranges::forward_range`.
 - `clear()` erases all elements in the `array`, without changing capacity.
 - `resize(x, size, value)` resizes `x`, appending `value`s if `size > x.size()`.
 
+### `array_dict`
+
+`array_dict` is a type constructor for associative arrays, where elements are
+stored contiguously, but in an undefined order. The elements are indexed by a
+key and offers the following tradeoffs compared to an `array`:
+
+- Constant-time erasure of elements, suitable in situations where arbitrary
+elements are frequently erased in between insertions.
+- Elements are not necessarily stored in insertion order.
+- A memory overhead compared to `array` due to the need to store key/value map.
+- No range construction/insertion. Elements have to be inserted individually
+with the caller tracking the returned keys.
+- The comparison operators are slower because elements are unordered.
+- Local storage is not a single pointer.
+
+The type parameter `T` is the type of objects stored in the `array_dict`.
+
+`array_dict<T>` models `std::ranges::contiguous_range<T>`.
+
+`array_dict<T>` models `std::semiregular` if `std::ranges::range_value_t<T>`
+does.
+
+`array_dict<T>` models `std::regular` if `std::ranges::range_value_t<T>` does.
+
+`array_dict<T>` models `std::totally_ordered` if `std::ranges::range_value_t<T>`
+does.
+
+The type parameter `Key` is the type of the key. It must model
+`std::signed_integral`. `std::int32_t` is the default.
+
+The value parameter `ga` is the growth algorithm used when more space is needed.
+`default_array_growth` is the default.
+
+The value parameter `alloc` is the allocator object used to manage the owned
+memory. `default_array_alloc` uses `malloc_allocator`.
+
+The member type `value_type` is the type of objects stored in the `array_dict`.
+
+The member type `ssize_type` is a signed type large enough to represent the
+maximum possible size of the `array_dict`.
+
+`array_dict` can be constructed with an initial capacity.
+
+`array_dict` supports the following operations:
+
+- `swap(x)` swaps the `array_dict` with `array_dict` `x`.
+- `bool{x}` returns `true` iff the `array_dict` is not empty.
+- `x[key]` accesses the element with key `key`.
+- `begin()` returns an iterator to the beginning of the `array_dict`.
+- `end()` returns an iterator to the end of the `array_dict`.
+- `size()` returns the size of the `array_dict`.
+- `capacity()` returns the size of the allocated space in the `array_dict`.
+- `max_size()` returns the maximum number of elements the `array_dict` can
+contain.
+- `reserve(i)` ensures there is reserved space for up to `i` elements.
+- `shrink_to_fit()` ensures `capacity() == size()`.
+- `has_key(key)` returns `true` iff `key` maps to an element in the
+`array_dict`.
+- `insert(args)` inserts an element constructed from `args`, returnings its key.
+- `erase(key)` erases the element with the key `key`.
+- `clear()` erases all elements in the `array_dict`, without changing capacity.
+
 ### `fixed_array`
 
 `fixed_array` is a type constructor for dynamic arrays of a fixed bit size. It

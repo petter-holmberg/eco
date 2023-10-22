@@ -1,0 +1,286 @@
+#ifndef ECO_ARRAY_DICT_
+#define ECO_ARRAY_DICT_
+
+#include <cassert>
+#include <concepts>
+#include <functional>
+#include <limits>
+#include <ranges>
+
+#include "eco_allocator.hpp"
+#include "eco_extent.hpp"
+#include "eco_memory.hpp"
+#include "eco_type_traits.hpp"
+
+namespace eco::inline cpp20 {
+
+template
+<
+  typename T,
+  std::signed_integral Key = std::int32_t,
+  auto ga = default_array_growth,
+  auto& alloc = default_array_alloc
+>
+class array_dict
+{
+public:
+  using key_type = Key;
+  using value_type = T;
+  using ssize_type = ssize_t<memory_view>;
+
+private:
+  static inline constexpr auto nil = std::numeric_limits<key_type>::min();
+
+  array<T, ga, alloc> data;
+  array<ssize_type, ga, alloc> index;
+  array<ssize_type, ga, alloc> reverse_index;
+  ssize_type head{nil};
+
+public:
+  [[nodiscard]] constexpr
+  array_dict() noexcept = default;
+
+  [[nodiscard]] explicit constexpr
+  array_dict(ssize_type capacity)
+    : data{capacity}
+    , index{capacity}
+    , reverse_index{capacity}
+  {}
+
+  [[nodiscard]] friend constexpr auto
+  operator==(array_dict const& x, array_dict const& y) -> bool
+    requires std::indirectly_comparable<T const*, T const*, std::ranges::equal_to>
+  {
+    if (x.size() != y.size()) return false;
+    for (T i = 0; i != x.index.size(); ++i) {
+      if (x.index[i] < 0) {
+        if (y.index[i] >= 0) return false;
+      } else {
+        if (y.index[i] < 0) return false;
+        if (x.data[x.index[i]] != y.data[y.index[i]]) return false;
+      }
+    }
+    return true;
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator!=(array_dict const& x, array_dict const& y) -> bool
+    requires std::indirectly_comparable<T const*, T const*, std::ranges::equal_to>
+  {
+    return !(x == y);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator<(array_dict const& x, array_dict const& y) -> bool
+    requires std::indirect_strict_weak_order<std::ranges::less, T const*>
+  {
+    auto f0 = x.index.begin();
+    auto l0 = x.index.end();
+    auto f1 = y.index.begin();
+    auto l1 = y.index.end();
+    while (true) {
+      if (f1 == l1) return false;
+      if (f0 == l0) return true;
+      auto i{*f0};
+      auto j{*f1};
+      if (i < 0) {
+        if (j >= 0) return true;
+      } else {
+        if (j < 0) return false;
+        if (std::ranges::less{}(x.data[i], y.data[j])) return true;
+        if (std::ranges::less{}(y.data[j], x.data[i])) return false;
+      }
+      ++f0;
+      ++f1;
+    }
+    return true;
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator>=(array_dict const& x, array_dict const& y) -> bool
+    requires std::indirect_strict_weak_order<std::ranges::less, T const*>
+  {
+    return !(x < y);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator>(array_dict const& x, array_dict const& y) -> bool
+    requires std::indirect_strict_weak_order<std::ranges::less, T const*>
+  {
+    return y < x;
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator<=(array_dict const& x, array_dict const& y) -> bool
+    requires std::indirect_strict_weak_order<std::ranges::less, T const*>
+  {
+    return !(y < x);
+  }
+
+  constexpr void
+  swap(array_dict& x) noexcept
+  {
+    data.swap(x.data);
+    index.swap(x.index);
+    std::swap(head, x.head);
+  }
+
+  [[nodiscard]] explicit constexpr
+  operator bool() const noexcept
+  {
+    return static_cast<bool>(data);
+  }
+
+  [[nodiscard]] constexpr auto
+  operator[](Key key) noexcept -> T&
+  {
+    [[maybe_unused]] pre: assert(key < index.size());
+    return data[index[key]];
+  }
+
+  [[nodiscard]] constexpr auto
+  operator[](Key key) const noexcept -> T const&
+  {
+    [[maybe_unused]] pre: assert(key < index.size());
+    return data[index[key]];
+  }
+
+  [[nodiscard]] constexpr auto
+  begin() noexcept -> T*
+  {
+    return data.begin();
+  }
+
+  [[nodiscard]] constexpr auto
+  begin() const noexcept -> T const*
+  {
+    return data.begin();
+  }
+
+  [[nodiscard]] constexpr auto
+  end() noexcept -> T*
+  {
+    return data.end();
+  }
+
+  [[nodiscard]] constexpr auto
+  end() const noexcept -> T const*
+  {
+    return data.end();
+  }
+
+  [[nodiscard]] constexpr auto
+  size() const noexcept -> ssize_type
+  {
+    return data.size();
+  }
+
+  [[nodiscard]] constexpr auto
+  capacity() const noexcept -> ssize_type
+  {
+    return data.capacity();
+  }
+
+  [[nodiscard]] constexpr auto
+  max_size() const noexcept -> ssize_type
+  {
+    return std::numeric_limits<key_type>::max();
+  }
+
+  constexpr void
+  reserve(ssize_type cap)
+  {
+    data.reserve(cap);
+    index.reserve(cap);
+    reverse_index.reserve(cap);
+    [[maybe_unused]] post: assert(capacity() >= cap);
+  }
+
+  constexpr void
+  shrink_to_fit()
+  {
+    data.shrink_to_fit();
+    index.shrink_to_fit();
+    reverse_index.shrink_to_fit();
+  }
+
+  constexpr auto
+  has_key(T key) const noexcept -> bool
+  {
+    [[maybe_unused]] pre: assert(key >= 0);
+    return (key < index.size() && index[key] >= 0);
+  }
+
+  template <typename... Args>
+    requires std::constructible_from<T, Args...>
+  [[nodiscard]] constexpr auto
+  insert(Args &&...args) -> Key
+  {
+    data.push_back(std::forward<Args>(args)...);
+    if (head == nil) {
+      index.push_back(size() - 1);
+      reverse_index.push_back(reverse_index.size());
+      return size() - 1;
+    } else {
+      auto i{-head - 1};
+      head = index[i];
+      index[i] = size() - 1;
+      reverse_index.push_back(i);
+      return i;
+    }
+  }
+
+  constexpr void
+  erase(Key key) noexcept
+  {
+    [[maybe_unused]] pre: assert(has_key(key));
+    data[index[key]] = std::move(*(data.end() - 1));
+    data.pop_back();
+    reverse_index[index[key]] = *(reverse_index.end() - 1);
+    if (data) {
+      index[*(reverse_index.end() - 1)] = index[key];
+      index[key] = head;
+      reverse_index.pop_back();
+      head = -key - 1;
+    } else {
+      index.clear();
+      reverse_index.clear();
+      head = nil;
+    }
+  }
+
+  constexpr void
+  clear() noexcept
+  {
+    data.clear();
+    index.clear();
+    head = nil;
+    // post axiom: "capacity() unchanged"
+  }
+};
+
+static_assert(std::totally_ordered<array_dict<int>>);
+static_assert(std::ranges::contiguous_range<array_dict<int>>);
+
+template <typename T, typename Key, auto ga, auto& alloc>
+constexpr void
+swap(array_dict<T, Key, ga, alloc>& x, array_dict<T, Key, ga, alloc>& y) noexcept
+{
+  x.swap(y);
+}
+
+}
+
+namespace std {
+
+template <typename T, typename Key, auto ga, auto& alloc>
+constexpr void
+swap(eco::array_dict<T, Key, ga, alloc>& x, eco::array_dict<T, Key, ga, alloc>& y) noexcept
+{
+  using eco::swap;
+  swap(x, y);
+}
+
+}
+
+#endif

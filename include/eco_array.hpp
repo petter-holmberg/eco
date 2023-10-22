@@ -70,7 +70,7 @@ public:
       (!std::same_as<R, array>) &&
       std::constructible_from<T, std::ranges::range_value_t<R>>
   [[nodiscard]] explicit constexpr
-  array(R&& range) noexcept(std::is_nothrow_copy_constructible_v<std::ranges::range_value_t<R>>)
+  array(R&& range)
     : header{std::ranges::ssize(range)}
   {
     header.insert_space(
@@ -86,7 +86,7 @@ public:
       (!std::same_as<R, array>) &&
       std::constructible_from<T, std::ranges::range_value_t<R>>
   constexpr auto
-  operator=(R&& range) noexcept(std::is_nothrow_copy_constructible_v<std::ranges::range_value_t<R>>) -> array&
+  operator=(R&& range) -> array&
   {
     auto const n_elements{std::ranges::ssize(range)};
     if (capacity() < n_elements) {
@@ -102,42 +102,42 @@ public:
   }
 
   [[nodiscard]] friend constexpr auto
-  operator==(array const& x, array const& y) noexcept -> bool
+  operator==(array const& x, array const& y) -> bool
     requires std::indirectly_comparable<T const*, T const*, std::ranges::equal_to>
   {
     return x.header == y.header;
   }
 
   [[nodiscard]] friend constexpr auto
-  operator!=(array const& x, array const& y) noexcept -> bool
+  operator!=(array const& x, array const& y) -> bool
     requires std::indirectly_comparable<T const*, T const*, std::ranges::equal_to>
   {
     return x.header != y.header;
   }
 
   [[nodiscard]] friend constexpr auto
-  operator<(array const& x, array const& y) noexcept -> bool
+  operator<(array const& x, array const& y) -> bool
     requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
     return x.header < y.header;
   }
 
   [[nodiscard]] friend constexpr auto
-  operator>=(array const& x, array const& y) noexcept -> bool
+  operator>=(array const& x, array const& y) -> bool
     requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
     return x.header >= y.header;
   }
 
   [[nodiscard]] friend constexpr auto
-  operator>(array const& x, array const& y) noexcept -> bool
+  operator>(array const& x, array const& y) -> bool
     requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
     return x.header > y.header;
   }
 
   [[nodiscard]] friend constexpr auto
-  operator<=(array const& x, array const& y) noexcept -> bool
+  operator<=(array const& x, array const& y) -> bool
     requires std::indirect_strict_weak_order<std::ranges::less, T const*>
   {
     return x.header <= y.header;
