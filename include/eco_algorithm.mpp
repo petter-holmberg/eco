@@ -1,11 +1,11 @@
-#ifndef ECO_ALGORITHM_
-#define ECO_ALGORITHM_
+module;
 
-#include <concepts>
-#include <iterator>
-#include <ranges>
+export module eco:algorithm;
 
-namespace eco::inline cpp20 {
+import std;
+import :concepts;
+
+namespace eco::inline cpp23 {
 
 struct reverse_append_impl
 {
@@ -33,8 +33,6 @@ struct reverse_append_impl
   }
 };
 
-inline constexpr reverse_append_impl reverse_append{};
+export inline constexpr reverse_append_impl reverse_append{};
 
 }
-
-#endif

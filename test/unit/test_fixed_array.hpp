@@ -1,12 +1,10 @@
 #ifndef ECO_TEST_FIXED_ARRAY_
 #define ECO_TEST_FIXED_ARRAY_
 
-#include <cassert>
-#include <numeric>
-#include <limits>
-#include <ranges>
+import std;
+import eco;
 
-#include "eco_fixed_array.hpp"
+#include <cassert>
 
 template <int bits, std::unsigned_integral T>
 inline void

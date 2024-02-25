@@ -1,17 +1,13 @@
-#ifndef ECO_BITVECTOR_
-#define ECO_BITVECTOR_
+module;
 
-#include <bit>
-#include <concepts>
+export module eco:bitvector;
 
-#include "eco_concepts.hpp"
-#include "eco_extent.hpp"
-#include "eco_memory.hpp"
-#include "eco_type_traits.hpp"
+import std;
+import :extent;
 
-namespace eco::inline cpp20 {
+namespace eco::inline cpp23 {
 
-template <typename T>
+export template <typename T>
 concept bitvector =
   std::regular<T> &&
   std::constructible_from<ssize_t<T>> &&
@@ -27,7 +23,7 @@ concept bitvector =
     { cb.select_1(i) } -> std::same_as<ssize_t<T>>;
   };
 
-template
+export template
 <
   std::unsigned_integral Word = unsigned int,
   typename Size = ssize_t<memory_view>
@@ -173,7 +169,7 @@ struct succ_0_impl
   }
 };
 
-inline constexpr succ_0_impl succ_0{};
+export inline constexpr succ_0_impl succ_0{};
 
 struct succ_1_impl
 {
@@ -185,7 +181,7 @@ struct succ_1_impl
   }
 };
 
-inline constexpr succ_1_impl succ_1{};
+export inline constexpr succ_1_impl succ_1{};
 
 struct pred_0_impl
 {
@@ -197,7 +193,7 @@ struct pred_0_impl
   }
 };
 
-inline constexpr pred_0_impl pred_0{};
+export inline constexpr pred_0_impl pred_0{};
 
 struct pred_1_impl
 {
@@ -209,8 +205,6 @@ struct pred_1_impl
   }
 };
 
-inline constexpr pred_1_impl pred_1{};
+export inline constexpr pred_1_impl pred_1{};
 
 }
-
-#endif

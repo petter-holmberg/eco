@@ -1,6 +1,7 @@
+import std;
+import eco;
+
 #include <cassert>
-#include <concepts>
-#include <utility>
 
 template <std::regular T>
 constexpr void
@@ -122,7 +123,6 @@ set_right_successor(ptree_cursor i, ptree_cursor j)
 #include "test_array_dict.hpp"
 #include "test_forward_list_pool.hpp"
 #include "test_list_pool.hpp"
-#include "test_dlx.hpp"
 #include "test_fixed_array.hpp"
 #include "test_bitvector.hpp"
 #include "test_binary_tree.hpp"
@@ -141,7 +141,6 @@ int main()
   test_array_dict();
   test_forward_list_pool();
   test_list_pool();
-  test_dlx();
   test_fixed_array<3, std::uint8_t>();
   test_fixed_array<4, std::uint8_t>();
   test_fixed_array<7, std::uint8_t>();

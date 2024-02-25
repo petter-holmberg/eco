@@ -1,22 +1,16 @@
-#ifndef ECO_FIXED_ARRAY_
-#define ECO_FIXED_ARRAY_
+module;
 
-#include <algorithm>
 #include <cassert>
-#include <climits>
-#include <concepts>
-#include <functional>
-#include <limits>
-#include <ranges>
-#include <variant>
 
-#include "eco_allocator.hpp"
-#include "eco_extent.hpp"
-#include "eco_memory.hpp"
-#include "eco_type_traits.hpp"
-#include "eco_bit.hpp"
+#define contract_assert assert
 
-namespace eco::inline cpp20 {
+export module eco:fixed_array;
+
+import std;
+import :bit;
+import :extent;
+
+namespace eco::inline cpp23 {
 
 template <std::integral T, std::integral U>
 [[nodiscard]] constexpr auto
@@ -25,7 +19,7 @@ div_ceil(T x, U y) -> std::common_type_t<T, U>
   return !!x + ((x - !!x) / y);
 }
 
-template
+export template
 <
   int w,
   std::unsigned_integral T = unsigned long int,
@@ -57,7 +51,7 @@ private:
     constexpr void
     operator()(T* dst)
     {
-      std::ranges::fill_n(dst, n_elements, 0);
+      std::ranges::fill_n(dst, n_elements, T{0});
     }
   };
 
@@ -97,7 +91,7 @@ private:
   write_range(R&& range, T* pos, std::uint8_t i) noexcept -> iterator
   {
     for (const auto& x : range) {
-      write(x, pos, i);
+      write(static_cast<T>(x), pos, i);
       i += w;
       if (i >= bit_size_v<T>) {
         i -= bit_size_v<T>;
@@ -672,7 +666,8 @@ public:
   [[nodiscard]] constexpr auto
   operator[](ssize_type n) noexcept -> reference
   {
-    [[maybe_unused]] pre: assert(n < size());
+    contract_assert(n < size());
+
     auto const bit_offset{w * n};
     return {header.begin() + bit_offset / bit_size_v<T>, std::uint8_t(bit_offset % bit_size_v<T>)};
   }
@@ -680,7 +675,8 @@ public:
   [[nodiscard]] constexpr auto
   operator[](ssize_type n) const noexcept -> T
   {
-    [[maybe_unused]] pre: assert(n < size());
+    contract_assert(n < size());
+
     auto const bit_offset{w * n};
     return read(header.begin() + bit_offset / bit_size_v<T>, bit_offset % bit_size_v<T>);
   }
@@ -760,7 +756,8 @@ public:
         header = {};
       }
     }
-    [[maybe_unused]] post: assert(is_full());
+
+    contract_assert(is_full());
   }
 
   constexpr auto
@@ -776,7 +773,7 @@ public:
         offset = 0;
       } else {
         pos = header.end() - 2;
-        offset = bit_size_v<T> - bit_capacity;
+        offset = static_cast<std::uint8_t>(bit_size_v<T> - bit_capacity);
       }
     } else {
       assert(header);
@@ -793,7 +790,8 @@ public:
   constexpr void
   pop_back() noexcept
   {
-    [[maybe_unused]] pre: assert(bool{*this});
+    contract_assert(bool{*this});
+
     (*this)[size() - 1] = T{};
     if (w * size() - (header.size() - 1) * bit_size_v<T> < w) {
       header.pop_back();
@@ -808,6 +806,7 @@ public:
   append(R&& range) -> iterator
   {
     // pre axiom: "range not overlapped with [begin(), end())"
+
     if (*this) {
       ssize_type n_bits{w * size()};
       auto n_elements{std::ranges::ssize(range)};
@@ -830,6 +829,7 @@ public:
   insert(const_iterator pos, T value) -> iterator
   {
     // pre axiom: "pos within [begin(), end()]"
+
     ssize_type n{pos - cbegin()};
     reserve(size() + 1);
     assert(header);
@@ -858,6 +858,7 @@ public:
   insert(const_iterator pos, R&& range) -> iterator
   {
     // pre axiom: "range not overlapped with [begin(), end())"
+
     ssize_type n{pos - cbegin()};
     auto n_elements{size() + std::ranges::ssize(range)};
     reserve(n_elements);
@@ -888,8 +889,9 @@ public:
   constexpr auto
   erase(iterator pos) noexcept -> iterator
   {
-    [[maybe_unused]] pre: assert(bool{*this});
+    contract_assert(bool{*this});
     // pre axiom: "pos within [begin(), end())"
+
     auto dst{pos};
     auto src{dst + 1};
     auto lim{end()};
@@ -908,6 +910,7 @@ public:
   erase(const_iterator pos) noexcept -> iterator
   {
     // pre axiom: "pos within [begin(), end())"
+
     return erase(const_iterator{pos});
   }
 
@@ -917,6 +920,7 @@ public:
   erase(R&& range) noexcept -> iterator
   {
     // pre axiom: "range within [begin(), end())"
+
     auto dst{std::ranges::begin(range)};
     auto src{dst + std::ranges::ssize(range)};
     auto lim{end()};
@@ -952,7 +956,7 @@ static_assert(std::totally_ordered<fixed_array<1>::reference>);
 static_assert(std::random_access_iterator<fixed_array<1>::iterator>);
 static_assert(std::random_access_iterator<fixed_array<1>::const_iterator>);
 
-template <int w, std::unsigned_integral T, auto ga, auto& alloc>
+export template <int w, std::unsigned_integral T, auto ga, auto& alloc>
 requires (w > 0 && w < bit_size_v<T>)
 constexpr void
 swap(fixed_array<w, T, ga, alloc>& x, fixed_array<w, T, ga, alloc>& y) noexcept
@@ -960,7 +964,7 @@ swap(fixed_array<w, T, ga, alloc>& x, fixed_array<w, T, ga, alloc>& y) noexcept
   x.swap(y);
 }
 
-template <int w, std::unsigned_integral T, auto ga, auto& alloc>
+export template <int w, std::unsigned_integral T, auto ga, auto& alloc>
 requires (w > 0 && w < bit_size_v<T>)
 constexpr void
 resize(fixed_array<w, T, ga, alloc>& x, ssize_t<fixed_array<w, T, ga, alloc>> size, value_t<fixed_array<w, T, ga, alloc>> const& value = T{})
@@ -986,7 +990,7 @@ resize(fixed_array<w, T, ga, alloc>& x, ssize_t<fixed_array<w, T, ga, alloc>> si
 
 namespace std {
 
-template <int w, std::unsigned_integral T, auto ga, auto& alloc>
+export template <int w, std::unsigned_integral T, auto ga, auto& alloc>
 requires (w > 0 && w < eco::bit_size_v<T>)
 constexpr void
 swap(eco::fixed_array<w, T, ga, alloc>& x, eco::fixed_array<w, T, ga, alloc>& y) noexcept
@@ -996,5 +1000,3 @@ swap(eco::fixed_array<w, T, ga, alloc>& x, eco::fixed_array<w, T, ga, alloc>& y)
 }
 
 }
-
-#endif

@@ -1,15 +1,13 @@
-#ifndef ECO_CONCEPTS_
-#define ECO_CONCEPTS_
+module;
 
-#include <concepts>
-#include <iterator>
-#include <utility>
+export module eco:concepts;
 
-#include "eco_type_traits.hpp"
+import std;
+import :type_traits;
 
-namespace eco::inline cpp20 {
+namespace eco::inline cpp23 {
 
-template <typename T>
+export template <typename T>
 concept boolean_testable =
   std::convertible_to<T, bool> &&
   requires (T&& b) {
@@ -20,22 +18,22 @@ static_assert(boolean_testable<bool>);
 static_assert(boolean_testable<int>);
 static_assert(boolean_testable<double>);
 
-template <typename T>
+export template <typename T>
 concept forward_linker =
   std::forward_iterator<iterator_t<T>> &&
   std::invocable<T, iterator_t<T>, iterator_t<T>>;
 
-template <typename T>
+export template <typename T>
 concept backward_linker =
   std::bidirectional_iterator<iterator_t<T>> &&
   std::invocable<T, iterator_t<T>, iterator_t<T>>;
 
-template <typename T>
+export template <typename T>
 concept bidirectional_linker =
   forward_linker<T> &&
   backward_linker<T>;
 
-template <typename T>
+export template <typename T>
 concept bicursor =
   std::regular<T> &&
   std::integral<weight_type_t<T>> &&
@@ -47,7 +45,7 @@ concept bicursor =
     { right_successor(cur) } -> std::same_as<T>;
   };
 
-template <typename T>
+export template <typename T>
 concept bidirectional_bicursor =
   bicursor<T> &&
   requires (T cur) {
@@ -55,7 +53,7 @@ concept bidirectional_bicursor =
     { predecessor(cur) } -> std::same_as<T>;
   };
 
-template <typename T>
+export template <typename T>
 concept linked_bicursor =
   bicursor<T> &&
   requires (T cur) {
@@ -64,5 +62,3 @@ concept linked_bicursor =
   };
 
 }
-
-#endif

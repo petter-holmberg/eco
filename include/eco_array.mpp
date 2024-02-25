@@ -1,22 +1,17 @@
-#ifndef ECO_ARRAY_
-#define ECO_ARRAY_
+module;
 
-#include <algorithm>
 #include <cassert>
-#include <concepts>
-#include <functional>
-#include <limits>
-#include <ranges>
-#include <variant>
 
-#include "eco_allocator.hpp"
-#include "eco_extent.hpp"
-#include "eco_memory.hpp"
-#include "eco_type_traits.hpp"
+#define contract_assert assert
 
-namespace eco::inline cpp20 {
+export module eco:array;
 
-template
+import std;
+import :extent;
+
+namespace eco::inline cpp23 {
+
+export template
 <
   typename T,
   auto ga = default_array_growth,
@@ -77,8 +72,9 @@ public:
       capacity(),
       writer{std::ranges::begin(range), std::ranges::end(range)}
     );
-    [[maybe_unused]] post_0: assert(size() == std::ranges::ssize(range));
-    [[maybe_unused]] post_1: assert(is_full());
+
+    contract_assert(size() == std::ranges::ssize(range));
+    contract_assert(is_full());
   }
 
   template <std::ranges::forward_range R>
@@ -92,11 +88,13 @@ public:
     if (capacity() < n_elements) {
       array temp{range};
       swap(temp);
-      [[maybe_unused]] invariant_0: assert(is_full());
+
+      contract_assert(is_full());
     } else if (header) {
       header.erase_space(header.begin(), header.size());
       header.insert_space(n_elements, writer{std::ranges::begin(range), std::ranges::end(range)});
-      [[maybe_unused]] invariant_1: assert(capacity() >= size());
+
+      contract_assert(capacity() >= size());
     }
     return *this;
   }
@@ -158,14 +156,16 @@ public:
   [[nodiscard]] constexpr auto
   operator[](ssize_type n) noexcept -> T&
   {
-    [[maybe_unused]] pre: assert(n < size());
+    contract_assert(n < size());
+
     return *(header.begin() + n);
   }
 
   [[nodiscard]] constexpr auto
   operator[](ssize_type n) const noexcept -> T const&
   {
-    [[maybe_unused]] pre: assert(n < size());
+    contract_assert(n < size());
+
     return *(header.begin() + n);
   }
 
@@ -217,7 +217,8 @@ public:
     if (capacity() < cap) {
       header.adjust_unused_capacity(cap - size());
     }
-    [[maybe_unused]] post: assert(capacity() >= cap);
+
+    contract_assert(capacity() >= cap);
   }
 
   constexpr void
@@ -230,7 +231,8 @@ public:
         header = {};
       }
     }
-    [[maybe_unused]] post: assert(is_full());
+
+    contract_assert(is_full());
   }
 
   template <typename... Args>
@@ -239,13 +241,15 @@ public:
   push_back(Args &&...args) -> T&
   {
     return header.push_back(std::forward<Args>(args)...);
-    [[maybe_unused]] post: assert(bool{*this});
+
+    // post axiom: bool{*this};
   }
 
   constexpr void
   pop_back() noexcept
   {
-    [[maybe_unused]] pre: assert(bool{*this});
+    contract_assert(bool{*this});
+
     header.pop_back();
   }
 
@@ -255,6 +259,7 @@ public:
   append(R&& range) -> T*
   {
     // pre axiom: "range not overlapped with [begin(), end())"
+
     auto const n_elements{std::ranges::distance(range)};
     reserve(size() + n_elements);
     return header.insert_space(n_elements, writer{std::ranges::begin(range), std::ranges::end(range)});
@@ -266,10 +271,12 @@ public:
   insert(T const* pos, Args &&...args) -> T*
   {
     // pre axiom: "pos within [begin(), end()]"
+
     auto df{pos - begin()};
     auto dm{size()};
     push_back(std::forward<Args>(args)...);
     return std::rotate(begin() + df, begin() + dm, end());
+
     // post axiom: bool{*this}
   }
 
@@ -280,6 +287,7 @@ public:
   {
     // pre axiom: "pos within [begin(), end()]"
     // pre axiom: "range not overlapped with [begin(), end())"
+
     auto const df{pos - begin()};
     auto const dm{size()};
     append(std::forward<R>(range));
@@ -289,10 +297,12 @@ public:
   constexpr auto
   erase(T const* pos) noexcept -> T*
   {
-    [[maybe_unused]] pre: assert(bool{*this});
+    contract_assert(bool{*this});
     // pre axiom: "pos within [begin(), end())"
+
     header.erase_space(const_cast<T*>(pos), 1);
     return const_cast<T*>(pos);
+
     // post axiom: "capacity() unchanged"
   }
 
@@ -302,9 +312,11 @@ public:
   erase(R&& range) noexcept -> T*
   {
     // pre axiom: "range within [begin(), end())"
+
     auto const pos{std::ranges::begin(range)};
     header.erase_space(pos, std::ranges::ssize(range));
     return pos;
+
     // post axiom: "capacity() unchanged"
   }
 
@@ -312,24 +324,25 @@ public:
   clear() noexcept
   {
     header.erase_space(begin(), size());
+
     // post axiom: "capacity() unchanged"
   }
 };
 
-template <std::ranges::forward_range R>
+export template <std::ranges::forward_range R>
 array(R&& range)->array<std::ranges::range_value_t<R>>;
 
 static_assert(std::totally_ordered<array<int>>);
 static_assert(std::ranges::contiguous_range<array<int>>);
 
-template <typename T, auto ga, auto& alloc>
+export template <typename T, auto ga, auto& alloc>
 constexpr void
 swap(array<T, ga, alloc>& x, array<T, ga, alloc>& y) noexcept
 {
   x.swap(y);
 }
 
-template <std::copy_constructible T, auto ga, auto& alloc>
+export template <std::copy_constructible T, auto ga, auto& alloc>
 constexpr void
 resize(array<T, ga, alloc>& x, ssize_t<array<T, ga, alloc>> size, value_t<array<T, ga, alloc>> const& value = T{})
 {
@@ -353,7 +366,7 @@ resize(array<T, ga, alloc>& x, ssize_t<array<T, ga, alloc>> size, value_t<array<
 
 namespace std {
 
-template <typename T, auto ga, auto& alloc>
+export template <typename T, auto ga, auto& alloc>
 constexpr void
 swap(eco::array<T, ga, alloc>& x, eco::array<T, ga, alloc>& y) noexcept
 {
@@ -362,5 +375,3 @@ swap(eco::array<T, ga, alloc>& x, eco::array<T, ga, alloc>& y) noexcept
 }
 
 }
-
-#endif

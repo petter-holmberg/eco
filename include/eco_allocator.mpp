@@ -1,17 +1,18 @@
-#ifndef ECO_ALLOCATOR_
-#define ECO_ALLOCATOR_
+module;
 
 #include <cassert>
-#include <concepts>
-#include <cstdlib>
 
-#include "eco_concepts.hpp"
-#include "eco_memory.hpp"
-#include "eco_type_traits.hpp"
+#define contract_assert assert
 
-namespace eco::inline cpp20 {
+export module eco:allocator;
 
-template <typename T>
+import std;
+import :concepts;
+import :memory;
+
+namespace eco::inline cpp23 {
+
+export template <typename T>
 concept allocator =
   std::movable<T> &&
   std::totally_ordered<T> &&
@@ -20,7 +21,7 @@ concept allocator =
     { a.allocate(n) } -> std::same_as<memory_view>;
   };
 
-template <typename T>
+export template <typename T>
 concept deallocatable_allocator =
   allocator<T> &&
   requires(T& a, memory_view mem)
@@ -28,7 +29,7 @@ concept deallocatable_allocator =
     { a.deallocate(mem) } noexcept -> boolean_testable;
   };
 
-template <typename T>
+export template <typename T>
 concept reallocatable_allocator =
   allocator<T> &&
   requires(T a, memory_view mem, ssize_t<memory_view> n)
@@ -36,7 +37,7 @@ concept reallocatable_allocator =
     { a.reallocate(mem, n) } -> std::same_as<memory_view>;
   };
 
-template <typename T>
+export template <typename T>
 concept ownership_aware_allocator =
   allocator<T> &&
   requires(T const& a, memory_view mem)
@@ -44,7 +45,7 @@ concept ownership_aware_allocator =
     { a.is_owner(mem) } noexcept -> boolean_testable;
   };
 
-class malloc_allocator
+export class malloc_allocator
 {
 public:
   [[nodiscard]] constexpr auto
@@ -76,7 +77,7 @@ public:
     return {first, n};
   }
 
-  constexpr auto
+  /*constexpr*/ auto
   deallocate(memory_view mem) noexcept -> bool
   {
     std::free(mem.first);
@@ -87,7 +88,7 @@ public:
 static_assert(deallocatable_allocator<malloc_allocator>);
 static_assert(reallocatable_allocator<malloc_allocator>);
 
-template <allocator A = malloc_allocator>
+export template <allocator A = malloc_allocator>
 class arena_allocator
 {
   [[no_unique_address]] A alloc;
@@ -159,7 +160,7 @@ public:
   [[nodiscard]] constexpr auto
   allocate(ssize_t<memory_view> n) -> memory_view
   {
-    [[maybe_unused]] pre: assert(can_allocate(n));
+    contract_assert(can_allocate(n));
 
     if (n <= 0) {
       return {};
@@ -186,5 +187,3 @@ public:
 static_assert(deallocatable_allocator<arena_allocator<malloc_allocator>>);
 
 }
-
-#endif

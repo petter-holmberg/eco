@@ -1,16 +1,18 @@
-#ifndef ECO_BINARY_TREE_
-#define ECO_BINARY_TREE_
+module;
 
-#include <algorithm>
 #include <cassert>
 
-#include "eco_concepts.hpp"
-#include "eco_bitvector.hpp"
-#include "eco_type_traits.hpp"
+#define contract_assert assert
 
-namespace eco::inline cpp20 {
+export module eco:binary_tree;
 
-template <bitvector B = basic_bitvector<>>
+import std;
+import :bitvector;
+import :list_pool;
+
+namespace eco::inline cpp23 {
+
+export template <bitvector B = basic_bitvector<>>
 class binary_louds
 {
   B bits;
@@ -60,7 +62,8 @@ public:
   [[nodiscard]] constexpr auto
   parent(ssize_type v) const noexcept -> ssize_type
   {
-    [[maybe_unused]] pre: assert(v != root());
+    contract_assert(v != root());
+
     return bits.select_1(v - 1) / 2;
   }
 
@@ -85,14 +88,16 @@ public:
   [[nodiscard]] constexpr auto
   left_child(ssize_type v) const noexcept -> index_type
   {
-    [[maybe_unused]] pre: assert(has_left_child(v));
+    contract_assert(has_left_child(v));
+
     return bits.rank_1(2 * v) + 1;
   }
 
   [[nodiscard]] constexpr auto
   right_child(ssize_type v) const noexcept -> index_type
   {
-    [[maybe_unused]] pre: assert(has_right_child(v));
+    contract_assert(has_right_child(v));
+
     return bits.rank_1(2 * (v + 1));
   }
 
@@ -104,7 +109,7 @@ public:
   }
 };
 
-template <bitvector B = basic_bitvector<>>
+export template <bitvector B = basic_bitvector<>>
 class binary_louds_cursor
 {
   binary_louds<B> const* tree = nullptr;
@@ -140,42 +145,48 @@ public:
   [[nodiscard]] friend constexpr auto
   has_left_successor(binary_louds_cursor i) noexcept -> bool
   {
-    [[maybe_unused]] pre: assert(bool{i});
+    contract_assert(bool{i});
+
     return i.tree->has_left_child(i.node);
   }
 
   [[nodiscard]] friend constexpr auto
   has_right_successor(binary_louds_cursor i) noexcept -> bool
   {
-    [[maybe_unused]] pre: assert(bool{i});
+    contract_assert(bool{i});
+
     return i.tree->has_right_child(i.node);
   }
 
   [[nodiscard]] friend constexpr auto
   left_successor(binary_louds_cursor i) noexcept -> binary_louds_cursor<B>
   {
-    [[maybe_unused]] pre: assert(bool{i} && has_left_successor(i));
+    contract_assert(bool{i} && has_left_successor(i));
+
     return {*i.tree, i.tree->left_child(i.node)};
   }
 
   [[nodiscard]] friend constexpr auto
   right_successor(binary_louds_cursor i) noexcept -> binary_louds_cursor<B>
   {
-    [[maybe_unused]] pre: assert(bool{i} && has_right_successor(i));
+    contract_assert(bool{i} && has_right_successor(i));
+
     return {*i.tree, i.tree->right_child(i.node)};
   }
 
   [[nodiscard]] friend constexpr auto
   has_predecessor(binary_louds_cursor i) noexcept -> bool
   {
-    [[maybe_unused]] pre: assert(bool{i});
+    contract_assert(bool{i});
+
     return i.node != i.tree->root();
   }
 
   [[nodiscard]] friend constexpr auto
   predecessor(binary_louds_cursor i) noexcept -> binary_louds_cursor<B>
   {
-    [[maybe_unused]] pre: assert(bool{i} && has_predecessor(i));
+    contract_assert(bool{i} && has_predecessor(i));
+
     return {*i.tree, i.tree->parent(i.node)};
   }
 
@@ -194,7 +205,7 @@ public:
 
 static_assert(eco::bidirectional_bicursor<binary_louds_cursor<basic_bitvector<unsigned int, ssize_t<memory_view>>>>);
 
-enum class df_visit
+export enum class df_visit
 {
   pre,
   in,
@@ -207,7 +218,8 @@ struct is_left_successor_impl
   [[nodiscard]] constexpr auto
   operator()(C cur) const -> bool
   {
-    [[maybe_unused]] pre: assert(has_predecessor(cur));
+    contract_assert(has_predecessor(cur));
+
     auto pred = predecessor(cur);
     return has_left_successor(pred) && left_successor(pred) == cur;
   }
@@ -220,7 +232,7 @@ struct is_left_successor_impl
   }
 };
 
-inline constexpr is_left_successor_impl is_left_successor{};
+export inline constexpr is_left_successor_impl is_left_successor{};
 
 struct is_right_successor_impl
 {
@@ -228,7 +240,8 @@ struct is_right_successor_impl
   [[nodiscard]] constexpr auto
   operator()(C cur) const -> bool
   {
-    [[maybe_unused]] pre: assert(has_predecessor(cur));
+    contract_assert(has_predecessor(cur));
+
     auto pred = predecessor(cur);
     return has_right_successor(pred) && right_successor(pred) == cur;
   }
@@ -241,7 +254,7 @@ struct is_right_successor_impl
   }
 };
 
-inline constexpr is_right_successor_impl is_right_successor{};
+export inline constexpr is_right_successor_impl is_right_successor{};
 
 struct tree_traverse_step_impl
 {
@@ -280,7 +293,7 @@ struct tree_traverse_step_impl
   }
 };
 
-inline constexpr tree_traverse_step_impl tree_traverse_step{};
+export inline constexpr tree_traverse_step_impl tree_traverse_step{};
 
 struct tree_weight_impl
 {
@@ -301,7 +314,7 @@ struct tree_weight_impl
   }
 };
 
-inline constexpr tree_weight_impl tree_weight{};
+export inline constexpr tree_weight_impl tree_weight{};
 
 struct tree_height_impl
 {
@@ -324,8 +337,6 @@ struct tree_height_impl
   }
 };
 
-inline constexpr tree_height_impl tree_height{};
+export inline constexpr tree_height_impl tree_height{};
 
 }
-
-#endif

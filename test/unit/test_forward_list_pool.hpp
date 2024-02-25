@@ -1,7 +1,10 @@
-#include <cassert>
+#ifndef ECO_TEST_FORWARD_LIST_POOL_
+#define ECO_TEST_FORWARD_LIST_POOL_
 
-#include "eco_algorithm.hpp"
-#include "eco_forward_list_pool.hpp"
+import std;
+import eco;
+
+#include <cassert>
 
 inline void
 test_forward_list_pool()
@@ -67,3 +70,5 @@ test_forward_list_pool()
     assert(*next == 4);
   }
 }
+
+#endif

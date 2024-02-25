@@ -1,14 +1,17 @@
-#ifndef ECO_ORDINAL_TREE_
-#define ECO_ORDINAL_TREE_
+module;
 
 #include <cassert>
 
-#include "eco_bitvector.hpp"
-#include "eco_type_traits.hpp"
+#define contract_assert assert
 
-namespace eco::inline cpp20 {
+export module eco:ordinal_tree;
 
-template <bitvector B = basic_bitvector<>>
+import std;
+import :bitvector;
+
+namespace eco::inline cpp23 {
+
+export template <bitvector B = basic_bitvector<>>
 class louds
 {
   B bits;
@@ -58,35 +61,40 @@ public:
   [[nodiscard]] constexpr auto
   first_child(ssize_type v) const noexcept -> ssize_type
   {
-    [[maybe_unused]] pre: assert(!is_leaf(v));
+    contract_assert(!is_leaf(v));
+
     return child(v, 0);
   }
 
   [[nodiscard]] constexpr auto
   last_child(ssize_type v) const noexcept -> ssize_type
   {
-    [[maybe_unused]] pre: assert(!is_leaf(v));
+    contract_assert(!is_leaf(v));
+
     return child(v, children(v) - 1);
   }
 
   [[nodiscard]] constexpr auto
   next_sibling(ssize_type v) const noexcept -> ssize_type
   {
-    [[maybe_unused]] pre: assert(v != root() && v != last_child(parent(v)));
+    contract_assert(v != root() && v != last_child(parent(v)));
+
     return succ_0(bits, v) + 1;
   }
 
   [[nodiscard]] constexpr auto
   prev_sibling(ssize_type v) const noexcept -> ssize_type
   {
-    [[maybe_unused]] pre: assert(v != root() && v != first_child(parent(v)));
+    contract_assert(v != root() && v != first_child(parent(v)));
+
     return pred_0(bits, v - 2) + 1;
   }
 
   [[nodiscard]] constexpr auto
   parent(ssize_type v) const noexcept -> ssize_type
   {
-    [[maybe_unused]] pre: assert(v != root());
+    contract_assert(v != root());
+
     const auto j = bits.select_1(bits.rank_0(v - 1));
     return pred_0(bits, j) + 1;
   }
@@ -118,14 +126,16 @@ public:
   [[nodiscard]] constexpr auto
   child(ssize_type v, ssize_type n) const noexcept -> ssize_type
   {
-    [[maybe_unused]] pre: assert(n >= 0 && n < children(v));
+    contract_assert(n >= 0 && n < children(v));
+
     return bits.select_0(bits.rank_1(v + n)) + 1;
   }
 
   [[nodiscard]] constexpr auto
   child_rank(ssize_type v) const noexcept -> ssize_type
   {
-    [[maybe_unused]] pre: assert(v != root());
+    contract_assert(v != root());
+
     const auto j = bits.select_1(bits.rank_0(v) - 1);
     return j - pred_0(bits, j) - 1;
   }
@@ -144,8 +154,6 @@ struct lca_impl
   }
 };
 
-inline constexpr lca_impl lca{};
+export inline constexpr lca_impl lca{};
 
 }
-
-#endif

@@ -1,6 +1,10 @@
-#include <cassert>
+#ifndef ECO_TEST_ORDINAL_TREE_
+#define ECO_TEST_ORDINAL_TREE_
 
-#include "eco_ordinal_tree.hpp"
+import std;
+import eco;
+
+#include <cassert>
 
 inline void
 test_louds()
@@ -115,3 +119,4 @@ test_louds()
   assert(eco::lca(x, x.first_child(x.first_child(x.root())), x.last_child(x.first_child(x.root()))) == x.first_child(x.root()));
 }
 
+#endif

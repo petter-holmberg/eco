@@ -1,9 +1,10 @@
-#include <cassert>
-#include <numeric>
-#include <limits>
-#include <ranges>
+#ifndef ECO_TEST_ARRAY_DICT_
+#define ECO_TEST_ARRAY_DICT_
 
-#include "eco_array_dict.hpp"
+import std;
+import eco;
+
+#include <cassert>
 
 inline void
 test_array_dict()
@@ -614,3 +615,5 @@ test_array_dict()
     assert(x.capacity() == 1);
   }
 }
+
+#endif

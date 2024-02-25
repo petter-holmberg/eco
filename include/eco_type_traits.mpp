@@ -1,7 +1,8 @@
-#ifndef ECO_TYPE_TRAITS_
-#define ECO_TYPE_TRAITS_
+module;
 
-namespace eco::user::inline cpp20 {
+export module eco:type_traits;
+
+export namespace eco::user::inline cpp23 {
 
 template <typename T>
 struct value_type_traits
@@ -41,7 +42,7 @@ struct const_iterator_type_traits
 
 }
 
-namespace eco::inline cpp20 {
+export namespace eco::inline cpp23 {
 
 template <typename T>
 using value_t = typename user::value_type_traits<T>::type;
@@ -62,5 +63,3 @@ template <typename T>
 using const_iterator_t = typename user::const_iterator_type_traits<T>::type;
 
 }
-
-#endif

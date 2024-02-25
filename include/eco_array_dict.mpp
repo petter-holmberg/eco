@@ -1,20 +1,17 @@
-#ifndef ECO_ARRAY_DICT_
-#define ECO_ARRAY_DICT_
+module;
 
 #include <cassert>
-#include <concepts>
-#include <functional>
-#include <limits>
-#include <ranges>
 
-#include "eco_allocator.hpp"
-#include "eco_extent.hpp"
-#include "eco_memory.hpp"
-#include "eco_type_traits.hpp"
+#define contract_assert assert
 
-namespace eco::inline cpp20 {
+export module eco:array_dict;
 
-template
+import std;
+import :array;
+
+namespace eco::inline cpp23 {
+
+export template
 <
   typename T,
   std::signed_integral Key = std::int32_t,
@@ -134,14 +131,16 @@ public:
   [[nodiscard]] constexpr auto
   operator[](Key key) noexcept -> T&
   {
-    [[maybe_unused]] pre: assert(key < index.size());
+    contract_assert(key < index.size());
+
     return data[index[key]];
   }
 
   [[nodiscard]] constexpr auto
   operator[](Key key) const noexcept -> T const&
   {
-    [[maybe_unused]] pre: assert(key < index.size());
+    contract_assert(key < index.size());
+
     return data[index[key]];
   }
 
@@ -193,7 +192,8 @@ public:
     data.reserve(cap);
     index.reserve(cap);
     reverse_index.reserve(cap);
-    [[maybe_unused]] post: assert(capacity() >= cap);
+
+    contract_assert(capacity() >= cap);
   }
 
   constexpr void
@@ -205,9 +205,10 @@ public:
   }
 
   constexpr auto
-  has_key(T key) const noexcept -> bool
+  has_key(Key key) const noexcept -> bool
   {
-    [[maybe_unused]] pre: assert(key >= 0);
+    contract_assert(key >= 0);
+
     return (key < index.size() && index[key] >= 0);
   }
 
@@ -220,20 +221,21 @@ public:
     if (head == nil) {
       index.push_back(size() - 1);
       reverse_index.push_back(reverse_index.size());
-      return size() - 1;
+      return static_cast<Key>(size() - 1);
     } else {
       auto i{-head - 1};
       head = index[i];
       index[i] = size() - 1;
       reverse_index.push_back(i);
-      return i;
+      return static_cast<Key>(i);
     }
   }
 
   constexpr void
   erase(Key key) noexcept
   {
-    [[maybe_unused]] pre: assert(has_key(key));
+    contract_assert(has_key(key));
+
     data[index[key]] = std::move(*(data.end() - 1));
     data.pop_back();
     reverse_index[index[key]] = *(reverse_index.end() - 1);
@@ -262,7 +264,7 @@ public:
 static_assert(std::totally_ordered<array_dict<int>>);
 static_assert(std::ranges::contiguous_range<array_dict<int>>);
 
-template <typename T, typename Key, auto ga, auto& alloc>
+export template <typename T, typename Key, auto ga, auto& alloc>
 constexpr void
 swap(array_dict<T, Key, ga, alloc>& x, array_dict<T, Key, ga, alloc>& y) noexcept
 {
@@ -273,7 +275,7 @@ swap(array_dict<T, Key, ga, alloc>& x, array_dict<T, Key, ga, alloc>& y) noexcep
 
 namespace std {
 
-template <typename T, typename Key, auto ga, auto& alloc>
+export template <typename T, typename Key, auto ga, auto& alloc>
 constexpr void
 swap(eco::array_dict<T, Key, ga, alloc>& x, eco::array_dict<T, Key, ga, alloc>& y) noexcept
 {
@@ -282,5 +284,3 @@ swap(eco::array_dict<T, Key, ga, alloc>& x, eco::array_dict<T, Key, ga, alloc>& 
 }
 
 }
-
-#endif

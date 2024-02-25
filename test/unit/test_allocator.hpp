@@ -1,8 +1,12 @@
+#ifndef ECO_TEST_ALLOCATOR_
+#define ECO_TEST_ALLOCATOR_
+
+import std;
+import eco;
+
 #include <cassert>
 
-#include "eco_allocator.hpp"
-
-constexpr void
+void
 test_malloc_allocator()
 {
   {
@@ -68,7 +72,7 @@ test_malloc_allocator()
 }
 
 template <eco::deallocatable_allocator A>
-inline constexpr void
+inline void
 test_arena_allocator()
 {
   {
@@ -131,9 +135,11 @@ test_arena_allocator()
   }
 }
 
-constexpr void
+void
 test_allocator()
 {
   test_malloc_allocator();
   test_arena_allocator<eco::malloc_allocator>();
 }
+
+#endif

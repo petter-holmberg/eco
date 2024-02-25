@@ -1,7 +1,10 @@
-#include <cassert>
+#ifndef ECO_TEST_LIST_POOL_
+#define ECO_TEST_LIST_POOL_
 
-#include "eco_algorithm.hpp"
-#include "eco_list_pool.hpp"
+import std;
+import eco;
+
+#include <cassert>
 
 inline void
 test_list_pool()
@@ -104,3 +107,5 @@ test_list_pool()
     assert(pool.value(pool.next(pool.next(pool.next(pool.next(head))))) == 4);
   }
 }
+
+#endif

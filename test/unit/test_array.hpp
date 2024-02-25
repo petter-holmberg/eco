@@ -1,9 +1,10 @@
-#include <cassert>
-#include <numeric>
-#include <limits>
-#include <ranges>
+#ifndef ECO_TEST_ARRAY_
+#define ECO_TEST_ARRAY_
 
-#include "eco_array.hpp"
+import std;
+import eco;
+
+#include <cassert>
 
 inline void
 test_array()
@@ -387,9 +388,9 @@ test_array()
 
   {
     eco::array<int> x;
-    assert(x.max_size() == std::numeric_limits<eco::ssize_t<decltype(x)>>::max() / sizeof(int));
+    assert(x.max_size() == std::numeric_limits<eco::ssize_t<decltype(x)>>::max() / int(sizeof(int)));
     eco::array<double> y;
-    assert(y.max_size() == std::numeric_limits<eco::ssize_t<decltype(x)>>::max() / sizeof(double));
+    assert(y.max_size() == std::numeric_limits<eco::ssize_t<decltype(x)>>::max() / int(sizeof(double)));
   }
 
   {
@@ -574,3 +575,5 @@ test_array()
     assert(x.capacity() == 4);
   }
 }
+
+#endif

@@ -1,7 +1,10 @@
-#include <cassert>
-#include <numeric>
+#ifndef ECO_TEST_EXTENT_
+#define ECO_TEST_EXTENT_
 
-#include "eco_extent.hpp"
+import std;
+import eco;
+
+#include <cassert>
 
 inline void
 test_extent()
@@ -636,3 +639,5 @@ test_extent()
     assert(*(x.begin() + 2) == 2);
   }
 }
+
+#endif

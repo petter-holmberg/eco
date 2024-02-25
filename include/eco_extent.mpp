@@ -1,23 +1,18 @@
-#ifndef ECO_EXTENT_
-#define ECO_EXTENT_
+module;
 
-#include <algorithm>
-#include <bit>
+#include <stddef.h>
 #include <cassert>
-#include <concepts>
-#include <iterator>
-#include <memory>
-#include <type_traits>
-#include <variant>
 
-#include "eco_allocator.hpp"
-#include "eco_concepts.hpp"
-#include "eco_memory.hpp"
-#include "eco_type_traits.hpp"
+#define contract_assert assert
 
-namespace eco::inline cpp20 {
+export module eco:extent;
 
-template <typename T>
+import std;
+import :allocator;
+
+namespace eco::inline cpp23 {
+
+export template <typename T>
 struct array_copier
 {
   using value_type = T;
@@ -70,7 +65,7 @@ struct array_copier
   }
 };
 
-template <typename T>
+export template <typename T>
 inline constexpr array_copier<T> default_array_copy{};
 
 struct default_array_growth_algorithm
@@ -85,11 +80,11 @@ struct default_array_growth_algorithm
   }
 };
 
-inline constexpr default_array_growth_algorithm default_array_growth{};
+export inline constexpr default_array_growth_algorithm default_array_growth{};
 
-inline malloc_allocator default_array_alloc{};
+export inline malloc_allocator default_array_alloc{};
 
-template
+export template
 <
   typename T,
   typename Size = ssize_t<memory_view>,
@@ -122,42 +117,48 @@ class extent
   [[nodiscard]] constexpr auto
   header() noexcept -> header_t*
   {
-    [[maybe_unused]] pre: assert(start);
+    contract_assert(start);
+
     return std::bit_cast<header_t*>(std::bit_cast<std::byte*>(start) - header_byte_size());
   }
 
   [[nodiscard]] constexpr auto
   header() const noexcept -> header_t const*
   {
-    [[maybe_unused]] pre: assert(start);
+    contract_assert(start);
+
     return std::bit_cast<header_t*>(std::bit_cast<std::byte*>(start) - header_byte_size());
   }
 
   [[nodiscard]] constexpr auto
   size_ref() noexcept -> Size&
   {
-    [[maybe_unused]] pre: assert(start);
+    contract_assert(start);
+
     return header()->size;
   }
 
   [[nodiscard]] constexpr auto
   size_ref() const noexcept -> Size const&
   {
-    [[maybe_unused]] pre: assert(start);
+    contract_assert(start);
+
     return header()->size;
   }
 
   [[nodiscard]] constexpr auto
   capacity_ref() noexcept -> Size&
   {
-    [[maybe_unused]] pre: assert(start);
+    contract_assert(start);
+
     return header()->capacity;
   }
 
   [[nodiscard]] constexpr auto
   capacity_ref() const noexcept -> Size const&
   {
-    [[maybe_unused]] pre: assert(start);
+    contract_assert(start);
+
     return header()->capacity;
   }
 
@@ -165,7 +166,8 @@ class extent
   metadata_ref() noexcept -> Metadata&
     requires (!std::same_as<Metadata, std::monostate>)
   {
-    [[maybe_unused]] pre: assert(start);
+    contract_assert(start);
+
     return header()->metadata;
   }
 
@@ -173,7 +175,8 @@ class extent
   metadata_ref() const noexcept -> Metadata const&
     requires (!std::same_as<Metadata, std::monostate>)
   {
-    [[maybe_unused]] pre: assert(start);
+    contract_assert(start);
+
     return header()->metadata;
   }
 
@@ -251,7 +254,8 @@ private:
   [[nodiscard]] constexpr auto
   construct(Size new_capacity) const -> T*
   {
-    [[maybe_unused]] pre: assert(new_capacity >= 0);
+    contract_assert(new_capacity >= 0);
+
     auto const memory{alloc.allocate(header_byte_size() + new_capacity * sizeof(T))};
     auto new_header{std::bit_cast<header_t*>(memory.begin())};
     new_header->size = size();
@@ -282,8 +286,9 @@ private:
   constexpr void
   move(Size n_new_elements)
   {
-    [[maybe_unused]] pre: assert(n_new_elements >= 0);
-    auto new_start{construct(std::invoke(ga, capacity(), n_new_elements))};
+    contract_assert(n_new_elements >= 0);
+
+    auto new_start{construct(static_cast<Size>(std::invoke(ga, capacity(), n_new_elements)))};
     if (start) {
       if constexpr (!std::same_as<Metadata, std::monostate>) {
         std::bit_cast<header_t*>(std::bit_cast<std::byte*>(new_start) - header_byte_size())->metadata = std::move(metadata_ref());
@@ -296,10 +301,10 @@ private:
   constexpr void
   move(Size n_new_elements, Size offset)
   {
-    [[maybe_unused]] pre:
-      assert(n_new_elements >= 0);
-      assert(offset >= 0 && offset <= size());
-    auto new_start{construct(std::invoke(ga, capacity(), n_new_elements))};
+    contract_assert(n_new_elements >= 0);
+    contract_assert(offset >= 0 && offset <= size());
+
+    auto new_start{construct(static_cast<Size>(std::invoke(ga, capacity(), n_new_elements)))};
     if (start) {
       copier.move(start, start + offset, new_start);
       copier.move(start + offset, end(), new_start + offset + n_new_elements);
@@ -347,7 +352,8 @@ public:
   {
     static_assert(std::indirectly_copyable<T*, T*>);
     if (capacity() < x.size()) { // Strong exception guarantee
-      [[maybe_unused]] invariant: assert(*this != x);
+      contract_assert(*this != x);
+
       auto temp{x};
       swap(temp);
     } else if (&x != this) { // Basic exception guarantee
@@ -429,7 +435,8 @@ public:
   constexpr void
   adjust_unused_capacity(Size n)
   {
-    [[maybe_unused]] pre: assert(n >= 0);
+    contract_assert(n >= 0);
+
     if (unused_capacity() != n) {
       extent temp{size() + n};
       copier.move(begin(), end(), temp.start);
@@ -441,7 +448,8 @@ public:
       }
       swap(temp);
     }
-    [[maybe_unused]] post: assert(unused_capacity() == n);
+
+    contract_assert(unused_capacity() == n);
   }
 
   template <typename... Args>
@@ -452,17 +460,22 @@ public:
     if (unused_capacity() == 0) {
       move(1);
     }
-    [[maybe_unused]] invariant: assert(unused_capacity() > 0);
+
+    contract_assert(unused_capacity() > 0);
+
     std::ranges::construct_at(end(), std::forward<Args>(args)...);
     ++size_ref();
-    [[maybe_unused]] post: assert(bool{*this});
+
+    contract_assert(bool{*this});
+
     return *(end() - 1);
   }
 
   constexpr void
   pop_back() noexcept
   {
-    [[maybe_unused]] pre: assert(bool{*this});
+    contract_assert(bool{*this});
+
     --size_ref();
     copier.destroy(end(), end() + 1);
   }
@@ -497,7 +510,9 @@ public:
       auto new_end{end() + n_elements};
       copier.move_backward(start + offset, end(), new_end);
     }
-    [[maybe_unused]] invariant: assert(start);
+
+    contract_assert(start);
+
     std::invoke(writer, start + offset);
     size_ref() += n_elements;
     return start + offset;
@@ -506,7 +521,8 @@ public:
   constexpr void
   erase_space(T* first, Size n_elements)
   {
-    [[maybe_unused]] pre: assert(n_elements <= size());
+    contract_assert(n_elements <= size());
+
     if (n_elements > 0) {
       auto last{first + n_elements};
       auto new_size{size() - n_elements};
@@ -528,5 +544,3 @@ static_assert(std::totally_ordered<extent<int>>);
 static_assert(std::ranges::contiguous_range<extent<int>>);
 
 }
-
-#endif

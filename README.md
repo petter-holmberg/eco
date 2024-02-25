@@ -5,36 +5,6 @@ eco is a generic C++ library of efficient components.
 
 # Algorithms
 
-## Combinatorial algorithms
-
-`dlx` is a type constructor implementing Donald Knuth's "Algorithm X" for
-solving exact cover problems using dancing links.
-
-The constructor takes a `std::forward_range` of item values and a
-`std::forward_range` of options containing item indexes.
-
-The function call operator takes a `dlx_visitor` that is invoked once for every
-found solution, and a `dlx_item_choice_heuristic` for choosing the items to
-cover during the execution of the algorithm. `dlx_mrv_heuristic` is the default
-heurisic.
-
-`dlx_visitor` describes a `std::invocable` type that is invoked once for every
-found solution.
-
-`dlx_visit_all` is a type constructor implementing a `dlx_visitor` that stores
-all matching choices in a member `array` `solutions`.
-
-`dlx_item_choice_heuristic` describes a `std::invocable` type that is invoked to
-choose the next remaining item to cover during a run of the algorithm.
-
-`dlx_mrv_heuristic` is a type constructor implementing a
-`dlx_item_choice_heuristic` that chooses the first remaining item selected by
-the minimum number of options.
-
-Example: For 7 items, choices
-`[[2, 4], [0, 3, 6], [1, 2, 5], [0, 3, 5], [1, 6], [3, 4, 6]]` has one solution
-`[0, 3, 4]`, i.e. the options choosing items `[[2, 4], [0, 3, 5], [1, 6]]`.
-
 ## List algorithms
 
 `reverse_append` takes a forward range, a `std::forward_iterator` to the head of

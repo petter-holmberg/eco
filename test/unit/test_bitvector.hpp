@@ -1,6 +1,10 @@
-#include <cassert>
+#ifndef ECO_TEST_BITVECTOR_
+#define ECO_TEST_BITVECTOR_
 
-#include "eco_bitvector.hpp"
+import std;
+import eco;
+
+#include <cassert>
 
 inline void
 test_basic_bitvector()
@@ -108,3 +112,5 @@ test_basic_bitvector()
     assert(x.select_1(3) == 55);
   }
 }
+
+#endif

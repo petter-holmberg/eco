@@ -1,5 +1,7 @@
-set_languages("c++20")
+set_languages("c++23")
+set_policy("build.c++.modules", true)
 set_warnings("allextra", "error")
+add_cxxflags("cl::/wd4324")
 set_optimize("fastest")
 
 add_rules("mode.debug", "mode.release")
@@ -11,10 +13,26 @@ elseif is_mode("release") then
 end
 
 target("eco")
-    add_includedirs("include")
-    set_kind("headeronly")
-    add_files("eco.hpp")
+    set_kind("static")
+    add_files(
+        "include/eco_bit.mpp",
+        "include/eco_type_traits.mpp",
+        "include/eco_concepts.mpp",
+        "include/eco_algorithm.mpp",
+        "include/eco_memory.mpp",
+        "include/eco_bitvector.mpp",
+        "include/eco_allocator.mpp",
+        "include/eco_extent.mpp",
+        "include/eco_array.mpp",
+        "include/eco_array_dict.mpp",
+        "include/eco_forward_list_pool.mpp",
+        "include/eco_list_pool.mpp",
+        "include/eco_fixed_array.mpp",
+        "include/eco_binary_tree.mpp",
+        "include/eco_ordinal_tree.mpp",
+        "eco.mpp"
+    )
 
 target("test")
-    add_includedirs("include")
+    add_deps("eco")
     add_files("test/unit/main.cpp")

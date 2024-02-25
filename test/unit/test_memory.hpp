@@ -1,6 +1,12 @@
+#ifndef ECO_TEST_MEMORY_
+#define ECO_TEST_MEMORY_
+
 #include <cassert>
 
-#include "eco_memory.hpp"
+import std;
+import eco;
+
+#include <cassert>
 
 constexpr void
 test_memory_view()
@@ -164,3 +170,5 @@ test_memory()
 {
   test_memory_view();
 }
+
+#endif

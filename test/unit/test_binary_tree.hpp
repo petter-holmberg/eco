@@ -1,6 +1,10 @@
-#include <cassert>
+#ifndef ECO_TEST_BINARY_TREE_
+#define ECO_TEST_BINARY_TREE_
 
-#include "eco_binary_tree.hpp"
+import std;
+import eco;
+
+#include <cassert>
 
 inline void
 test_binary_louds()
@@ -137,3 +141,4 @@ test_binary_louds()
   assert(eco::tree_height(cur) == 5);
 }
 
+#endif

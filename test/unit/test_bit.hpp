@@ -1,9 +1,10 @@
 #ifndef ECO_TEST_BIT_
 #define ECO_TEST_BIT_
 
-#include <cassert>
+import std;
+import eco;
 
-#include "eco_bit.hpp"
+#include <cassert>
 
 inline void
 test_bit()
@@ -168,6 +169,71 @@ test_bit()
     assert(x == 0b00101001);
     eco::bits_write<5>(3, x, static_cast<unsigned char>(31));
     assert(x == 0b11111001);
+
+    x = 0b00000000;
+    eco::bits_write(1, 0, x, static_cast<unsigned char>(1));
+    assert(x == 0b00000001);
+    eco::bits_write(1, 2, x, static_cast<unsigned char>(1));
+    assert(x == 0b00000101);
+    eco::bits_write(1, 7, x, static_cast<unsigned char>(1));
+    assert(x == 0b10000101);
+    eco::bits_write(2, 0, x, static_cast<unsigned char>(2));
+    assert(x == 0b10000110);
+    eco::bits_write(2, 2, x, static_cast<unsigned char>(2));
+    assert(x == 0b10001010);
+    eco::bits_write(2, 6, x, static_cast<unsigned char>(1));
+    assert(x == 0b01001010);
+    eco::bits_write(5, 0, x, static_cast<unsigned char>(21));
+    assert(x == 0b01010101);
+    eco::bits_write(5, 2, x, static_cast<unsigned char>(10));
+    assert(x == 0b00101001);
+    eco::bits_write(5, 3, x, static_cast<unsigned char>(31));
+    assert(x == 0b11111001);
+  }
+
+  {
+    unsigned char x{0b00000000};
+    unsigned char y{0b00000001};
+    unsigned char z{0b00000101};
+
+    assert((eco::bits_read_straddled<2, 7>(x, y)) == 2);
+    assert((eco::bits_read_straddled<3, 7>(x, y)) == 2);
+    assert((eco::bits_read_straddled<4, 6>(x, y)) == 4);
+    assert((eco::bits_read_straddled<5, 5>(x, y)) == 8);
+    assert((eco::bits_read_straddled<6, 6>(x, y)) == 4);
+    assert((eco::bits_read_straddled<6, 7>(x, y)) == 2);
+    assert((eco::bits_read_straddled<2, 7>(x, z)) == 2);
+    assert((eco::bits_read_straddled<3, 7>(x, z)) == 2);
+    assert((eco::bits_read_straddled<4, 6>(x, z)) == 4);
+    assert((eco::bits_read_straddled<5, 5>(x, z)) == 8);
+    assert((eco::bits_read_straddled<6, 6>(x, z)) == 20);
+    assert((eco::bits_read_straddled<6, 7>(x, z)) == 10);
+
+    assert((eco::bits_read_straddled<2>(7, x, y)) == 2);
+    assert((eco::bits_read_straddled<3>(7, x, y)) == 2);
+    assert((eco::bits_read_straddled<4>(6, x, y)) == 4);
+    assert((eco::bits_read_straddled<5>(5, x, y)) == 8);
+    assert((eco::bits_read_straddled<6>(6, x, y)) == 4);
+    assert((eco::bits_read_straddled<6>(7, x, y)) == 2);
+    assert((eco::bits_read_straddled<2>(7, x, z)) == 2);
+    assert((eco::bits_read_straddled<3>(7, x, z)) == 2);
+    assert((eco::bits_read_straddled<4>(6, x, z)) == 4);
+    assert((eco::bits_read_straddled<5>(5, x, z)) == 8);
+    assert((eco::bits_read_straddled<6>(6, x, z)) == 20);
+    assert((eco::bits_read_straddled<6>(7, x, z)) == 10);
+
+    assert((eco::bits_read_straddled(2, 7, x, y)) == 2);
+    assert((eco::bits_read_straddled(3, 7, x, y)) == 2);
+    assert((eco::bits_read_straddled(4, 6, x, y)) == 4);
+    assert((eco::bits_read_straddled(5, 5, x, y)) == 8);
+    assert((eco::bits_read_straddled(6, 6, x, y)) == 4);
+    assert((eco::bits_read_straddled(7, 7, x, y)) == 2);
+    assert((eco::bits_read_straddled(2, 7, x, z)) == 2);
+    assert((eco::bits_read_straddled(3, 7, x, z)) == 2);
+    assert((eco::bits_read_straddled(4, 6, x, z)) == 4);
+    assert((eco::bits_read_straddled(5, 5, x, z)) == 8);
+    assert((eco::bits_read_straddled(6, 6, x, z)) == 20);
+    assert((eco::bits_read_straddled(6, 7, x, z)) == 10);
   }
 
   {
@@ -183,6 +249,21 @@ test_bit()
     assert(x == 0b10100000);
     assert(y == 0b00000010);
     eco::bits_write_straddled<5>(6, x, y, static_cast<unsigned char>(21));
+    assert(x == 0b01100000);
+    assert(y == 0b00000101);
+
+    x = 0b00000000;
+    y = 0b00000000;
+    eco::bits_write_straddled(2, 7, x, y, static_cast<unsigned char>(1));
+    assert(x == 0b10000000);
+    assert(y == 0b00000000);
+    eco::bits_write_straddled(2, 7, x, y, static_cast<unsigned char>(3));
+    assert(x == 0b10000000);
+    assert(y == 0b00000001);
+    eco::bits_write_straddled(5, 5, x, y, static_cast<unsigned char>(21));
+    assert(x == 0b10100000);
+    assert(y == 0b00000010);
+    eco::bits_write_straddled(5, 6, x, y, static_cast<unsigned char>(21));
     assert(x == 0b01100000);
     assert(y == 0b00000101);
   }
