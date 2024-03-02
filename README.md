@@ -5,6 +5,38 @@ eco is a generic C++ library of efficient components.
 
 # Algorithms
 
+## Fold algorithms
+
+`fold_left` takes a `std::ranges::input_range`, a binary operator,
+an identity value, and a projection, which defaults to `std::identity`.
+It applies the operator to the projected elements in the range, from left to right.
+If the range is empty, it returns the identity value.
+
+Example: `<fold_left, +, 0> [] -> 0`
+Example: `<fold_left, +, 0> [1 2 3 4] -> 10`
+Example: `<fold_left, -, 0> [] -> 0`
+Example: `<fold_left, -, 0> [1 2 3 4] -> -8`
+Example: `<fold_left, *, 1> [] -> 1`
+Example: `<fold_left, *, 1> [1 2 3 4] -> 24`
+
+`fold_left_nonempty` omits the identity value and requires the range to be
+nonempty.
+
+`fold_right` takes a `std::ranges::bidirectional_range`, a binary operator,
+an identity value, and a projection, which defaults to `std::identity`.
+It applies the operator to the projected elements in the range, from right to left.
+If the range is empty, it returns the identity value.
+
+Example: `<fold_right, +, 0> [] -> 0`
+Example: `<fold_right, +, 0> [1 2 3 4] -> 10`
+Example: `<fold_right, -, 0> [] -> 0`
+Example: `<fold_right, -, 0> [1 2 3 4] -> -2`
+Example: `<fold_right, *, 1> [] -> 1`
+Example: `<fold_right, *, 1> [1 2 3 4] -> 24`
+
+`fold_right_nonempty` omits the identity value and requires the range to be
+nonempty.
+
 ## List algorithms
 
 `reverse_append` takes a forward range, a `std::forward_iterator` to the head of

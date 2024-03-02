@@ -1,0 +1,594 @@
+module;
+
+export module eco:iterator;
+
+import std;
+
+namespace eco::inline cpp23 {
+
+export template <std::input_iterator I>
+class input_iterator_adaptor
+{
+  I pos;
+
+public:
+  using iterator_type = I;
+  using iterator_concept = std::input_iterator_tag;
+  using value_type = std::iter_value_t<I>;
+  using difference_type = std::iter_difference_t<I>;
+
+  constexpr
+  input_iterator_adaptor(I&& p) noexcept
+    : pos{std::forward<I>(p)}
+  {}
+
+  constexpr auto
+  base() const& noexcept -> I const&
+  {
+    return pos;
+  }
+
+  constexpr auto
+  base() && noexcept -> I
+  {
+    return std::move(pos);
+  }
+
+  constexpr
+  input_iterator_adaptor(input_iterator_adaptor&& i) noexcept
+    : pos{std::forward<I>(i.pos)}
+  {}
+
+  constexpr auto
+  operator=(input_iterator_adaptor&& i) noexcept -> input_iterator_adaptor&
+  {
+    pos = std::forward<I>(i.pos);
+    return *this;
+  }
+
+  constexpr auto
+  operator*() const noexcept -> const value_type&
+  {
+    return *pos;
+  }
+
+  constexpr auto
+  operator++() noexcept -> input_iterator_adaptor&
+  {
+    ++pos;
+    return *this;
+  }
+
+  constexpr void
+  operator++(int) noexcept
+  {
+    pos++;
+  }
+};
+
+static_assert(std::input_iterator<input_iterator_adaptor<int*>>);
+
+export template <std::forward_iterator I>
+class forward_iterator_adaptor
+{
+  I pos;
+
+public:
+  using iterator_type = I;
+  using iterator_concept = std::forward_iterator_tag;
+  using value_type = std::iter_value_t<I>;
+  using difference_type = std::iter_difference_t<I>;
+
+  constexpr
+  forward_iterator_adaptor(I&& i) noexcept
+    : pos{std::forward<I>(i)}
+  {}
+
+  constexpr auto
+  base() const& noexcept -> iterator_type const&
+  {
+    return pos;
+  }
+
+  constexpr auto
+  base() && -> iterator_type
+  {
+    return std::move(pos);
+  }
+
+  constexpr
+  forward_iterator_adaptor() noexcept = default;
+
+  constexpr
+  forward_iterator_adaptor(forward_iterator_adaptor const& i) noexcept
+    : pos{i.pos}
+  {}
+
+  constexpr
+  forward_iterator_adaptor(forward_iterator_adaptor&& i) noexcept
+    : pos{std::forward<I>(i.pos)}
+  {}
+
+  constexpr auto
+  operator=(forward_iterator_adaptor const& i) noexcept -> forward_iterator_adaptor&
+  {
+    pos = i.pos;
+    return *this;
+  }
+
+  constexpr auto
+  operator=(forward_iterator_adaptor&& i) noexcept -> forward_iterator_adaptor&
+  {
+    pos = std::forward<I>(i.pos);
+    return *this;
+  }
+
+  friend constexpr auto
+  operator==(forward_iterator_adaptor i, forward_iterator_adaptor j) noexcept -> bool
+  {
+    return i.pos == j.pos;
+  }
+
+  constexpr auto
+  operator*() const noexcept -> const value_type&
+  {
+    return *pos;
+  }
+
+  constexpr auto
+  operator++() noexcept -> forward_iterator_adaptor&
+  {
+    ++pos;
+    return *this;
+  }
+
+  constexpr auto
+  operator++(int) noexcept -> forward_iterator_adaptor
+  {
+    return forward_iterator_adaptor{pos++};
+  }
+};
+
+static_assert(std::forward_iterator<forward_iterator_adaptor<int*>>);
+
+export template <std::bidirectional_iterator I>
+class bidirectional_iterator_adaptor
+{
+  I pos;
+
+public:
+  using iterator_type = I;
+  using iterator_concept = std::bidirectional_iterator_tag;
+  using value_type = std::iter_value_t<I>;
+  using difference_type = std::iter_difference_t<I>;
+
+  constexpr
+  bidirectional_iterator_adaptor(I&& i) noexcept
+    : pos{std::forward<I>(i)}
+  {}
+
+  constexpr auto
+  base() const& noexcept -> iterator_type const&
+  {
+    return pos;
+  }
+
+  constexpr auto
+  base() && -> iterator_type
+  {
+    return std::move(pos);
+  }
+
+  constexpr
+  bidirectional_iterator_adaptor() noexcept = default;
+
+  constexpr
+  bidirectional_iterator_adaptor(bidirectional_iterator_adaptor const& i) noexcept
+    : pos{i.pos}
+  {}
+
+  constexpr
+  bidirectional_iterator_adaptor(bidirectional_iterator_adaptor&& i) noexcept
+    : pos{std::forward<I>(i.pos)}
+  {}
+
+  constexpr auto
+  operator=(bidirectional_iterator_adaptor const& i) noexcept -> bidirectional_iterator_adaptor&
+  {
+    pos = i.pos;
+    return *this;
+  }
+
+  constexpr auto
+  operator=(bidirectional_iterator_adaptor&& i) noexcept -> bidirectional_iterator_adaptor&
+  {
+    pos = std::forward<I>(i.pos);
+    return *this;
+  }
+
+  friend constexpr auto
+  operator==(bidirectional_iterator_adaptor i, bidirectional_iterator_adaptor j) noexcept -> bool
+  {
+    return i.pos == j.pos;
+  }
+
+  constexpr auto
+  operator*() const noexcept -> const value_type&
+  {
+    return *pos;
+  }
+
+  constexpr auto
+  operator++() noexcept -> bidirectional_iterator_adaptor&
+  {
+    ++pos;
+    return *this;
+  }
+
+  constexpr auto
+  operator++(int) noexcept -> bidirectional_iterator_adaptor
+  {
+    return bidirectional_iterator_adaptor{pos++};
+  }
+
+  constexpr auto
+  operator--() noexcept -> bidirectional_iterator_adaptor&
+  {
+    --pos;
+    return *this;
+  }
+
+  constexpr auto
+  operator--(int) noexcept -> bidirectional_iterator_adaptor
+  {
+    return bidirectional_iterator_adaptor{pos--};
+  }
+};
+
+static_assert(std::bidirectional_iterator<bidirectional_iterator_adaptor<int*>>);
+
+export template <std::random_access_iterator I>
+class random_access_iterator_adaptor
+{
+  I pos;
+
+public:
+  using iterator_type = I;
+  using iterator_concept = std::random_access_iterator_tag;
+  using value_type = std::iter_value_t<I>;
+  using difference_type = std::iter_difference_t<I>;
+
+  constexpr
+  random_access_iterator_adaptor(I&& i) noexcept
+    : pos{std::forward<I>(i)}
+  {}
+
+  constexpr auto
+  base() const& noexcept -> iterator_type const&
+  {
+    return pos;
+  }
+
+  constexpr auto
+  base() && -> iterator_type
+  {
+    return std::move(pos);
+  }
+
+  constexpr
+  random_access_iterator_adaptor() noexcept = default;
+
+  constexpr
+  random_access_iterator_adaptor(random_access_iterator_adaptor const& i) noexcept
+    : pos{i.pos}
+  {}
+
+  constexpr
+  random_access_iterator_adaptor(random_access_iterator_adaptor&& i) noexcept
+    : pos{std::forward<I>(i.pos)}
+  {}
+
+  constexpr auto
+  operator=(random_access_iterator_adaptor const& i) noexcept -> random_access_iterator_adaptor&
+  {
+    pos = i.pos;
+    return *this;
+  }
+
+  constexpr auto
+  operator=(random_access_iterator_adaptor&& i) noexcept -> random_access_iterator_adaptor&
+  {
+    pos = std::forward<I>(i.pos);
+    return *this;
+  }
+
+  friend constexpr auto
+  operator==(random_access_iterator_adaptor i, random_access_iterator_adaptor j) noexcept -> bool
+  {
+    return i.pos == j.pos;
+  }
+
+  friend constexpr auto
+  operator<(random_access_iterator_adaptor i, random_access_iterator_adaptor j) -> bool
+  {
+    return std::less{}(i.pos, j.pos);
+  }
+
+  friend constexpr auto
+  operator>=(random_access_iterator_adaptor i, random_access_iterator_adaptor j) -> bool
+  {
+    return std::greater_equal{}(i.pos, j.pos);
+  }
+
+  friend constexpr auto
+  operator>(random_access_iterator_adaptor i, random_access_iterator_adaptor j) -> bool
+  {
+    return std::greater{}(i.pos, j.pos);
+  }
+
+  friend constexpr auto
+  operator<=(random_access_iterator_adaptor i, random_access_iterator_adaptor j) -> bool
+  {
+    return std::less_equal{}(i.pos, j.pos);
+  }
+
+  constexpr auto
+  operator*() const noexcept -> const value_type&
+  {
+    return *pos;
+  }
+
+  constexpr auto
+  operator[](difference_type d) const -> const value_type&
+  {
+    return pos[d];
+  }
+
+  constexpr auto
+  operator++() noexcept -> random_access_iterator_adaptor&
+  {
+    ++pos;
+    return *this;
+  }
+
+  constexpr auto
+  operator++(int) noexcept -> random_access_iterator_adaptor
+  {
+    return random_access_iterator_adaptor{pos++};
+  }
+
+  constexpr auto
+  operator--() noexcept -> random_access_iterator_adaptor&
+  {
+    --pos;
+    return *this;
+  }
+
+  constexpr auto
+  operator--(int) noexcept -> random_access_iterator_adaptor
+  {
+    return random_access_iterator_adaptor{pos--};
+  }
+
+  friend constexpr auto
+  operator-(random_access_iterator_adaptor i, random_access_iterator_adaptor j) -> difference_type
+  {
+    return i.pos - j.pos;
+  }
+
+  constexpr auto
+  operator+=(difference_type d) -> random_access_iterator_adaptor&
+  {
+    pos += d;
+    return *this;
+  }
+
+  friend constexpr auto
+  operator+(random_access_iterator_adaptor i, difference_type d) -> random_access_iterator_adaptor
+  {
+    i.pos = i.pos + d;
+    return i;
+  }
+
+  friend constexpr auto
+  operator+(difference_type d, random_access_iterator_adaptor i) -> random_access_iterator_adaptor
+  {
+    i.pos = d + i.pos;
+    return i;
+  }
+
+  constexpr auto
+  operator-=(difference_type d) -> random_access_iterator_adaptor&
+  {
+    pos -= d;
+    return *this;
+  }
+
+  friend constexpr auto
+  operator-(random_access_iterator_adaptor i, difference_type d) -> random_access_iterator_adaptor
+  {
+    i.pos = i.pos - d;
+    return i;
+  }
+};
+
+static_assert(std::random_access_iterator<random_access_iterator_adaptor<int*>>);
+
+export template <std::contiguous_iterator I>
+class contiguous_iterator_adaptor
+{
+  I pos;
+
+public:
+  using iterator_type = I;
+  using iterator_concept = std::contiguous_iterator_tag;
+  using value_type = std::iter_value_t<I>;
+  using difference_type = std::iter_difference_t<I>;
+
+  constexpr
+  contiguous_iterator_adaptor(I&& i) noexcept
+    : pos{std::forward<I>(i)}
+  {}
+
+  constexpr auto
+  base() const& noexcept -> iterator_type const&
+  {
+    return pos;
+  }
+
+  constexpr auto
+  base() && -> iterator_type
+  {
+    return std::move(pos);
+  }
+
+  constexpr
+  contiguous_iterator_adaptor() noexcept = default;
+
+  constexpr
+  contiguous_iterator_adaptor(contiguous_iterator_adaptor const& i) noexcept
+    : pos{i.pos}
+  {}
+
+  constexpr
+  contiguous_iterator_adaptor(contiguous_iterator_adaptor&& i) noexcept
+    : pos{std::forward<I>(i.pos)}
+  {}
+
+  constexpr auto
+  operator=(contiguous_iterator_adaptor const& i) noexcept -> contiguous_iterator_adaptor&
+  {
+    pos = i.pos;
+    return *this;
+  }
+
+  constexpr auto
+  operator=(contiguous_iterator_adaptor&& i) noexcept -> contiguous_iterator_adaptor&
+  {
+    pos = std::forward<I>(i.pos);
+    return *this;
+  }
+
+  friend constexpr auto
+  operator==(contiguous_iterator_adaptor i, contiguous_iterator_adaptor j) noexcept -> bool
+  {
+    return i.pos == j.pos;
+  }
+
+  friend constexpr auto
+  operator<(contiguous_iterator_adaptor i, contiguous_iterator_adaptor j) -> bool
+  {
+    return std::less{}(i.pos, j.pos);
+  }
+
+  friend constexpr auto
+  operator>=(contiguous_iterator_adaptor i, contiguous_iterator_adaptor j) -> bool
+  {
+    return std::greater_equal{}(i.pos, j.pos);
+  }
+
+  friend constexpr auto
+  operator>(contiguous_iterator_adaptor i, contiguous_iterator_adaptor j) -> bool
+  {
+    return std::greater{}(i.pos, j.pos);
+  }
+
+  friend constexpr auto
+  operator<=(contiguous_iterator_adaptor i, contiguous_iterator_adaptor j) -> bool
+  {
+    return std::less_equal{}(i.pos, j.pos);
+  }
+
+  constexpr auto
+  operator*() const noexcept -> const value_type&
+  {
+    return *pos;
+  }
+
+  constexpr auto
+  operator->() const -> value_type const*
+  {
+    if constexpr (std::is_pointer_v<I>) {
+      return pos;
+    } else {
+      return pos.operator->();
+    }
+  }
+
+  constexpr auto
+  operator[](difference_type d) const -> const value_type&
+  {
+    return pos[d];
+  }
+
+  constexpr auto
+  operator++() noexcept -> contiguous_iterator_adaptor&
+  {
+    ++pos;
+    return *this;
+  }
+
+  constexpr auto
+  operator++(int) noexcept -> contiguous_iterator_adaptor
+  {
+    return contiguous_iterator_adaptor{pos++};
+  }
+
+  constexpr auto
+  operator--() noexcept -> contiguous_iterator_adaptor&
+  {
+    --pos;
+    return *this;
+  }
+
+  constexpr auto
+  operator--(int) noexcept -> contiguous_iterator_adaptor
+  {
+    return contiguous_iterator_adaptor{pos--};
+  }
+
+  friend constexpr auto
+  operator-(contiguous_iterator_adaptor i, contiguous_iterator_adaptor j) -> difference_type
+  {
+    return i.pos - j.pos;
+  }
+
+  constexpr auto
+  operator+=(difference_type d) -> contiguous_iterator_adaptor&
+  {
+    pos += d;
+    return *this;
+  }
+
+  friend constexpr auto
+  operator+(contiguous_iterator_adaptor i, difference_type d) -> contiguous_iterator_adaptor
+  {
+    i.pos = i.pos + d;
+    return i;
+  }
+
+  friend constexpr auto
+  operator+(difference_type d, contiguous_iterator_adaptor i) -> contiguous_iterator_adaptor
+  {
+    i.pos = d + i.pos;
+    return i;
+  }
+
+  constexpr auto
+  operator-=(difference_type d) -> contiguous_iterator_adaptor&
+  {
+    pos -= d;
+    return *this;
+  }
+
+  friend constexpr auto
+  operator-(contiguous_iterator_adaptor i, difference_type d) -> contiguous_iterator_adaptor
+  {
+    i.pos = i.pos - d;
+    return i;
+  }
+};
+
+static_assert(std::contiguous_iterator<contiguous_iterator_adaptor<int*>>);
+
+}

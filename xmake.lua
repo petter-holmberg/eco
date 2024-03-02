@@ -26,6 +26,7 @@ target("eco")
         "include/eco_array.mpp",
         "include/eco_array_dict.mpp",
         "include/eco_forward_list_pool.mpp",
+        "include/eco_iterator.mpp",
         "include/eco_list_pool.mpp",
         "include/eco_fixed_array.mpp",
         "include/eco_binary_tree.mpp",

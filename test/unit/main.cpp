@@ -127,6 +127,7 @@ set_right_successor(ptree_cursor i, ptree_cursor j)
 #include "test_bitvector.hpp"
 #include "test_binary_tree.hpp"
 #include "test_ordinal_tree.hpp"
+#include "test_fold.hpp"
 
 static_assert(eco::bidirectional_bicursor<ptree_cursor>);
 static_assert(eco::linked_bicursor<ptree_cursor>);
@@ -156,4 +157,5 @@ int main()
   test_basic_bitvector();
   test_binary_louds();
   test_louds();
+  test_fold();
 }

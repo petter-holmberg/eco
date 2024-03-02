@@ -7,6 +7,141 @@ import :concepts;
 
 namespace eco::inline cpp23 {
 
+struct fold_left_nonempty_impl
+{
+  template <std::ranges::input_range R, typename Op, typename Proj = std::identity>
+  requires indirectly_regular_binary_invocable<Op, std::projected<std::ranges::iterator_t<R>, Proj>>
+  constexpr auto
+  operator()(R&& r, Op op, Proj proj = {}) const
+  {
+    return (*this)(std::ranges::begin(r), std::ranges::end(r), std::ref(op), std::ref(proj));
+  }
+
+  template <std::input_iterator I, typename Op, typename Proj = std::identity>
+  requires indirectly_regular_binary_invocable<Op, std::projected<I, Proj>>
+  constexpr auto
+  operator()(I first, std::sentinel_for<I> auto last, Op op, Proj proj = {}) const
+  {
+    auto result{std::invoke(proj, *first)};
+    ++first;
+    while (first != last) {
+      result = std::invoke(op, std::move(result), std::invoke(proj, *first));
+      ++first;
+    }
+    return std::move(result);
+  }
+};
+
+export inline constexpr fold_left_nonempty_impl fold_left_nonempty{};
+
+struct fold_right_nonempty_impl
+{
+  template <std::ranges::bidirectional_range R, typename Op, typename Proj = std::identity>
+  requires indirectly_regular_binary_invocable<Op, std::projected<std::ranges::iterator_t<R>, Proj>>
+  constexpr auto
+  operator()(R&& r, Op op, Proj proj = {}) const
+  {
+    return (*this)(std::ranges::begin(r), std::ranges::end(r), std::ref(op), std::ref(proj));
+  }
+
+  template <std::bidirectional_iterator I, typename Op, typename Proj = std::identity>
+  requires indirectly_regular_binary_invocable<Op, std::projected<I, Proj>>
+  constexpr auto
+  operator()(I first, std::sentinel_for<I> auto last, Op op, Proj proj = {}) const
+  {
+    auto tail = std::ranges::next(first, last);
+    --tail;
+    auto result{std::invoke(proj, *tail)};
+    while (first != tail) {
+      --tail;
+      result = std::invoke(op, std::invoke(proj, *tail), std::move(result));
+    }
+    return std::move(result);
+  }
+};
+
+export inline constexpr fold_right_nonempty_impl fold_right_nonempty{};
+
+struct fold_left_impl
+{
+  template <std::ranges::input_range R, typename Op, typename T, typename Proj = std::identity>
+  requires
+    indirectly_regular_binary_invocable<Op, std::projected<std::ranges::iterator_t<R>, Proj>> &&
+    std::convertible_to<
+      T,
+      std::invoke_result_t<
+        Op,
+        typename std::projected<std::ranges::iterator_t<R>, Proj>::value_type,
+        typename std::projected<std::ranges::iterator_t<R>, Proj>::value_type
+      >
+    >
+  constexpr auto
+  operator()(R&& r, Op op, T id, Proj proj = {}) const
+  {
+    return (*this)(std::ranges::begin(r), std::ranges::end(r), std::ref(op), std::move(id), std::ref(proj));
+  }
+
+  template <std::input_iterator I, typename Op, typename T, typename Proj = std::identity>
+  requires
+    indirectly_regular_binary_invocable<Op, std::projected<I, Proj>> &&
+    std::convertible_to<
+      T,
+      std::invoke_result_t<
+        Op,
+        typename std::projected<I, Proj>::value_type,
+        typename std::projected<I, Proj>::value_type
+      >
+    >
+  constexpr auto
+  operator()(I first, std::sentinel_for<I> auto last, Op op, T id, Proj proj = {}) const
+  {
+    if (first == last) return std::move(id);
+    return fold_left_nonempty(first, last, std::ref(op), std::ref(proj));
+  }
+};
+
+export inline constexpr fold_left_impl fold_left{};
+
+struct fold_right_impl
+{
+  template <std::ranges::bidirectional_range R, typename Op, typename T, typename Proj = std::identity>
+  requires
+    indirectly_regular_binary_invocable<Op, std::projected<std::ranges::iterator_t<R>, Proj>> &&
+    std::convertible_to<
+      T,
+      std::invoke_result_t<
+        Op,
+        typename std::projected<std::ranges::iterator_t<R>, Proj>::value_type,
+        typename std::projected<std::ranges::iterator_t<R>, Proj>::value_type
+      >
+    >
+  constexpr auto
+  operator()(R&& r, Op op, T id, Proj proj = {}) const
+  {
+    return (*this)(std::ranges::begin(r), std::ranges::end(r), std::ref(op), std::move(id), std::ref(proj));
+  }
+
+  template <std::bidirectional_iterator I, typename Op, typename T, typename Proj = std::identity>
+  requires
+    indirectly_regular_binary_invocable<Op, std::projected<I, Proj>> &&
+    std::convertible_to<
+      T,
+      std::invoke_result_t<
+        Op,
+        typename std::projected<I, Proj>::value_type,
+        typename std::projected<I, Proj>::value_type
+      >
+    >
+  constexpr auto
+  operator()(I first, std::sentinel_for<I> auto last, Op op, T id, Proj proj = {}) const
+  {
+    if (first == last) return std::move(id);
+    return fold_right_nonempty(first, last, std::ref(op), std::ref(proj));
+  }
+};
+
+export inline constexpr fold_right_impl fold_right{};
+
 struct reverse_append_impl
 {
   template <std::ranges::forward_range R, forward_linker L>
@@ -14,7 +149,7 @@ struct reverse_append_impl
   constexpr auto
   operator()(R&& r, std::ranges::iterator_t<R> head, L set_successor) const -> std::ranges::iterator_t<R>
   {
-    (*this)(std::ranges::begin(r), std::ranges::end(r), head, set_successor);
+    (*this)(std::ranges::begin(r), std::ranges::end(r), head, std::ref(set_successor));
   }
 
   template <std::forward_iterator I, forward_linker L>
@@ -25,7 +160,7 @@ struct reverse_append_impl
     while (first != last) {
       auto next = first;
       ++next;
-      set_successor(first, head);
+      std::invoke(set_successor, first, head);
       head = first;
       first = next;
     }
