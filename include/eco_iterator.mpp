@@ -6,6 +6,12 @@ import std;
 
 namespace eco::inline cpp23 {
 
+export template <std::input_or_output_iterator I, typename Proj>
+using projected_value_t = typename std::projected<I, Proj>::value_type;
+
+export template <std::ranges::range R, typename Proj>
+using projected_range_value_t = typename std::projected<std::ranges::iterator_t<R>, Proj>::value_type;
+
 export template <std::input_iterator I>
 class input_iterator_adaptor
 {

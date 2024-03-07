@@ -18,16 +18,19 @@ static_assert(boolean_testable<bool>);
 static_assert(boolean_testable<int>);
 static_assert(boolean_testable<double>);
 
-template<typename F, typename I>
+template<typename F, typename I1, typename I2 = I1>
 concept indirectly_regular_binary_invocable =
-  std::indirectly_readable<I> &&
   std::copy_constructible<F> &&
-  std::regular_invocable<F&, std::iter_value_t<I>&, std::iter_value_t<I>&> &&
-  std::regular_invocable<F&, std::iter_reference_t<I>, std::iter_reference_t<I>> &&
-  std::regular_invocable<F&, std::iter_common_reference_t<I>, std::iter_common_reference_t<I>> &&
-  std::common_reference_with<
-    std::invoke_result_t<F&, std::iter_value_t<I>&, std::iter_value_t<I>&>,
-    std::invoke_result_t<F&, std::iter_reference_t<I>, std::iter_reference_t<I>>>;
+  std::indirectly_readable<I1> &&
+  std::indirectly_readable<I2> &&
+  std::regular_invocable<F&, std::iter_value_t<I1>&, std::iter_value_t<I2>&> &&
+  std::regular_invocable<F&, std::iter_reference_t<I1>, std::iter_reference_t<I2>> &&
+  std::regular_invocable<F&, std::iter_common_reference_t<I1>, std::iter_common_reference_t<I2>> &&
+  std::common_reference_with
+  <
+    std::invoke_result_t<F&, std::iter_value_t<I1>&, std::iter_value_t<I2>&>,
+    std::invoke_result_t<F&, std::iter_reference_t<I1>, std::iter_reference_t<I2>>
+  >;
 
 export template <typename T>
 concept forward_linker =

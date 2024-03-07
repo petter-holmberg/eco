@@ -7,35 +7,67 @@ eco is a generic C++ library of efficient components.
 
 ## Fold algorithms
 
-`fold_left` takes a `std::ranges::input_range`, a binary operator,
-an identity value, and a projection, which defaults to `std::identity`.
-It applies the operator to the projected elements in the range, from left to right.
+`fold_left` takes a `std::ranges::input_range`, an identity value,
+a binary operator, and a projection, which defaults to `std::identity`.
+It applies the operator to the projected elements in the range,
+from left to right.
 If the range is empty, it returns the identity value.
 
-Example: `<fold_left, +, 0> [] -> 0`
-Example: `<fold_left, +, 0> [1 2 3 4] -> 10`
-Example: `<fold_left, -, 0> [] -> 0`
-Example: `<fold_left, -, 0> [1 2 3 4] -> -8`
-Example: `<fold_left, *, 1> [] -> 1`
-Example: `<fold_left, *, 1> [1 2 3 4] -> 24`
+Example: `<fold_left, 0, +> [] -> 0`
+Example: `<fold_left, 0, +> [1 2 3 4] -> 10`
+Example: `<fold_left, 0, -> [] -> 0`
+Example: `<fold_left, 0, -> [1 2 3 4] -> -8`
+Example: `<fold_left, 1, *> [] -> 1`
+Example: `<fold_left, 1, *> [1 2 3 4] -> 24`
 
 `fold_left_nonempty` omits the identity value and requires the range to be
 nonempty.
 
-`fold_right` takes a `std::ranges::bidirectional_range`, a binary operator,
-an identity value, and a projection, which defaults to `std::identity`.
-It applies the operator to the projected elements in the range, from right to left.
+`fold_right` takes a `std::ranges::bidirectional_range`, an identity value,
+a binary operator, and a projection, which defaults to `std::identity`.
+It applies the operator to the projected elements in the range,
+from right to left.
 If the range is empty, it returns the identity value.
 
-Example: `<fold_right, +, 0> [] -> 0`
-Example: `<fold_right, +, 0> [1 2 3 4] -> 10`
-Example: `<fold_right, -, 0> [] -> 0`
-Example: `<fold_right, -, 0> [1 2 3 4] -> -2`
-Example: `<fold_right, *, 1> [] -> 1`
-Example: `<fold_right, *, 1> [1 2 3 4] -> 24`
+Example: `<fold_right, 0, +> [] -> 0`
+Example: `<fold_right, 0, +> [1 2 3 4] -> 10`
+Example: `<fold_right, 0, -> [] -> 0`
+Example: `<fold_right, 0, -> [1 2 3 4] -> -2`
+Example: `<fold_right, 1, *> [] -> 1`
+Example: `<fold_right, 1, *> [1 2 3 4] -> 24`
 
 `fold_right_nonempty` omits the identity value and requires the range to be
 nonempty.
+
+`fold_left_binary` takes two `std::input_range`s, an identity value,
+two binary operators, and two projection functions,
+which default to `std::identity`.
+It pairwise maps all projected elements in the two ranges,
+using the second operator, and reduces the results using the first operator,
+from left to right.
+It requires the second range not to be shorter than the first.
+
+Example: `<fold_left_binary, 0, +, *> [0 1 2 3] [2 3 4 5] -> 26`
+Example: `<fold_left_binary, 0, +, *> [0 1 2 3] [2 3 4 5 6] -> 26`
+Example: `<fold_left_binary, 0, +, *> [] [2 3 4 5 6] -> 0`
+
+`fold_left_binary_nonempty` omits the identity value and requires the range to
+be nonempty.
+
+`fold_right_binary` takes two `std::input_range`s, an identity value,
+two binary operators, and two projection functions,
+which default to `std::identity`.
+It pairwise maps all projected elements in the two ranges,
+using the second operator, and reduces the results using the first operator,
+from right to left.
+It requires the second range not to be shorter than the first.
+
+Example: `<fold_right_binary, 0, +, *> [0 1 2 3] [2 3 4 5] -> 26`
+Example: `<fold_right_binary, 0, +, *> [0 1 2 3] [2 3 4 5 6] -> 32`
+Example: `<fold_right_binary, 0, +, *> [] [2 3 4 5] -> 0`
+
+`fold_right_binary_nonempty` omits the identity value and requires the range to
+be nonempty.
 
 ## List algorithms
 
