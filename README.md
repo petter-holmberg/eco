@@ -5,6 +5,121 @@ eco is a generic C++ library of efficient components.
 
 # Algorithms
 
+## Linear search algorithms
+
+`find_not` takes a `std::ranges::input_range`, a value, and optionally a
+projection. It returns the first position in the range with a projected element
+not equal to the given value. If all elements in the range are equal to the
+given value, it returns the end position of the range.
+
+Example: `<find_not, 1> [1, 2, 3] -> @2`
+
+`find_n` takes a `std::ranges::input_iterator` and a count, a value, and
+optionally a projection. It returns the first position in the range with a
+projected element equal to the given value, along with the remaining count.
+
+Example: `<find_n, 3, 2> [1, 2, 3] -> [@2, 1]`
+
+`find_not_n` takes a `std::ranges::input_iterator` and a count, a value, and
+optionally a projection. It returns the first position in the range with a
+projected element not equal to the given value, along with the remaining count.
+
+Example: `<find_not_n, 3, 2> [1, 2, 3] -> [@1, 2]`
+
+`find_if_n` takes a `std::ranges::input_iterator` and a count, a unary
+predicate, and optionally a projection. It returns the first position in the
+range with a projected element satisfying the given predicate, along with the
+remaining count.
+
+Example: `<find_if_n, 3, (>1)> [1, 2, 3] -> [@2, 1]`
+
+`find_if_not_n` takes a `std::ranges::input_iterator` and a count, a unary
+predicate, and optionally a projection. It returns the first position in the
+range with a projected element not satisfying the given predicate, along with
+the remaining count.
+
+Example: `<find_if_not_n, 3, (>2)> [1, 2, 3] -> [@1, 2]`
+
+`find_if_unguarded` takes a `std::ranges::input_iterator`, a unary predicate,
+and optionally a projection. It returns the first position in the range with a
+projected element satisfying the given predicate. It is a precondition that at
+least one element satisfies the given predicate.
+
+Example: `<find_if_unguarded, 2> [1, 2, 3] -> @2`
+
+`find_if_not_unguarded` takes a `std::ranges::input_iterator`, a unary
+predicate, and optionally a projection. It returns the first position in the
+range with a projected element not satisfying the given predicate. It is a
+precondition that at least one element does not satisfy the given predicate.
+
+Example: `<find_if_not_unguarded, 2> [1, 2, 3] -> @1`
+
+`not_all_of` takes a `std::ranges::input_range`, a unary predicate, and
+optionally a projection. It returns true iff not all of the projected elements
+in the range satisfy the given predicate.
+
+Example: `<not_all_of, (>3)> [1, 2, 3] -> true`
+
+`all_of_n` takes a `std::ranges::input_iterator` and a count, a unary
+predicate, and optionally a projection. It returns true iff all of the projected
+elements in the range satisfy the given predicate.
+
+Example: `<all_of_n, 3, (<4)> [1, 2, 3] -> true`
+
+`none_of_n` takes a `std::ranges::input_iterator` and a count, a unary
+predicate, and optionally a projection. It returns true iff none of the
+projected elements in the range satisfy the given predicate.
+
+Example: `<none_of_n, 3, (>3)> [1, 2, 3] -> true`
+
+`not_all_of_n` takes a `std::ranges::input_iterator` and a count, a unary
+predicate, and optionally a projection. It returns true iff not all of the
+projected elements in the range satisfy the given predicate.
+
+Example: `<not_all_of_n, 3, (<2)> [1, 2, 3] -> true`
+
+`any_of_n` takes a `std::ranges::input_iterator` and a count, a unary predicate,
+and optionally a projection. It returns true iff any of the projected elements
+in the range satisfy the given predicate.
+
+Example: `<any_of_n, 3, (>1)> [1, 2, 3] -> true`
+
+`count_not` takes a `std::ranges::input_range`, a value, and optionally a
+projection. It counts the number of projected elements that are not equal to the
+given predicate.
+
+Example: `<count_not, (2)> [1, 2, 3] -> 2`
+
+`count_if_not` takes a `std::ranges::input_range`, a unary predicate, and
+optionally a projection. It counts the number of projected elements that don't
+satisfy the given predicate.
+
+Example: `<count_if_not, (<2)> [1, 2, 3] -> 2`
+
+`count_n` takes a `std::ranges::input_iterator` and a count, a value, and
+optionally a projection. It counts the number of projected elements that are
+equal to the given value.
+
+Example: `<count_n, 3, 2> [1, 2, 3] -> 1`
+
+`count_not_n` takes a `std::ranges::input_iterator` and a count, a value, and
+optionally a projection. It counts the number of projected elements that are
+not equal to the given value.
+
+Example: `<count_not_n, 3, 2> [1, 2, 3] -> 2`
+
+`count_if_n` takes a `std::ranges::input_iterator` and a count, a unary
+predicate, and optionally a projection. It counts the number of projected
+elements that satisfy the given predicate.
+
+Example: `<count_if_n, 3, (<2)> [1, 2, 3] -> 1`
+
+`count_if_not_n` takes a `std::ranges::input_iterator` and a count, a unary
+predicate, and optionally a projection. It counts the number of projected
+elements that does not satisfy the given predicate.
+
+Example: `<count_if_not_n, 3, (<2)> [1, 2, 3] -> 2`
+
 ## Fold algorithms
 
 `fold_left` takes a `std::ranges::input_range`, an identity value,

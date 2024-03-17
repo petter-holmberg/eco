@@ -8,6 +8,318 @@ import :iterator;
 
 namespace eco::inline cpp23 {
 
+template <typename N>
+[[nodiscard]] constexpr auto
+count_down(N& n) -> bool
+{
+  if (n == 0) return false;
+  --n;
+  return true;
+}
+
+struct find_not_impl
+{
+  template <std::ranges::input_range R, typename T, typename Proj = std::identity>
+  requires std::indirect_binary_predicate<std::ranges::equal_to, std::projected<std::ranges::iterator_t<R>, Proj>, T const*>
+  [[nodiscard]] constexpr auto
+  operator()(R&& r, const T& value, Proj proj = {}) const -> std::ranges::borrowed_iterator_t<R>
+  {
+    return (*this)(std::ranges::begin(r), std::ranges::end(r), value, std::ref(proj));
+  }
+
+  template <std::input_iterator I, std::sentinel_for<I> S, typename T, typename Proj = std::identity>
+  requires std::indirect_binary_predicate<std::ranges::equal_to, std::projected<I, Proj>, T const*>
+  [[nodiscard]] constexpr auto
+  operator()(I first, S last, T const& value, Proj proj = {}) const -> I
+  {
+    while (first != last && std::invoke(proj, *first) == value) ++first;
+    return first;
+  }
+};
+
+export inline constexpr find_not_impl find_not{};
+
+struct find_if_unguarded_impl
+{
+  template <std::input_iterator I, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, Pred pred, Proj proj = {}) const -> I
+  {
+    while (!std::invoke(pred, std::invoke(proj, *first))) ++first;
+    return first;
+  }
+};
+
+export inline constexpr find_if_unguarded_impl find_if_unguarded{};
+
+struct find_if_not_unguarded_impl
+{
+  template <std::input_iterator I, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, Pred pred, Proj proj = {}) const -> I
+  {
+    while (std::invoke(pred, std::invoke(proj, *first))) ++first;
+    return first;
+  }
+};
+
+export inline constexpr find_if_not_unguarded_impl find_if_not_unguarded{};
+
+struct find_n_impl
+{
+  template <std::input_iterator I, typename T, typename Proj = std::identity>
+  requires std::indirect_binary_predicate<std::ranges::equal_to, std::projected<I, Proj>, T const*>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_difference_t<I> n, T const& value, Proj proj = {}) const -> std::ranges::in_value_result<I, std::iter_difference_t<I>>
+  {
+    while (count_down(n) && std::invoke(proj, *first) != value) ++first;
+    return {std::move(first), std::move(n)};
+  }
+};
+
+export inline constexpr find_n_impl find_n{};
+
+struct find_not_n_impl
+{
+  template <std::input_iterator I, typename T, typename Proj = std::identity>
+  requires std::indirect_binary_predicate<std::ranges::equal_to, std::projected<I, Proj>, T const*>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_difference_t<I> n, T const& value, Proj proj = {}) const -> std::ranges::in_value_result<I, std::iter_difference_t<I>>
+  {
+    while (count_down(n) && std::invoke(proj, *first) == value) ++first;
+    return {std::move(first), std::move(n)};
+  }
+};
+
+export inline constexpr find_not_n_impl find_not_n{};
+
+struct find_if_n_impl
+{
+  template <std::input_iterator I, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_difference_t<I> n, Pred pred, Proj proj = {}) const -> std::ranges::in_value_result<I, std::iter_difference_t<I>>
+  {
+    while (count_down(n) && !std::invoke(pred, std::invoke(proj, *first))) ++first;
+    return {std::move(first), std::move(n)};
+  }
+};
+
+export inline constexpr find_if_n_impl find_if_n{};
+
+struct find_if_not_n_impl
+{
+  template <std::input_iterator I, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_difference_t<I> n, Pred pred, Proj proj = {}) const -> std::ranges::in_value_result<I, std::iter_difference_t<I>>
+  {
+    while (count_down(n) && std::invoke(pred, std::invoke(proj, *first))) ++first;
+    return {std::move(first), std::move(n)};
+  }
+};
+
+export inline constexpr find_if_not_n_impl find_if_not_n{};
+
+struct not_all_of_impl
+{
+  template <std::ranges::input_range R, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<std::ranges::iterator_t<R>, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(R&& r, Pred pred, Proj proj = {}) const -> bool
+  {
+    return !std::ranges::all_of(std::forward<R>(r), std::ref(pred), std::ref(proj));
+  }
+
+  template <std::input_iterator I, std::sentinel_for<I> S, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, S last, Pred pred, Proj proj = {}) const -> bool
+  {
+    return !std::ranges::all_of(first, last, std::ref(pred), std::ref(proj));
+  }
+};
+
+export inline constexpr not_all_of_impl not_all_of{};
+
+struct all_of_n_impl
+{
+  template <std::input_iterator I, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_difference_t<I> n, Pred pred, Proj proj = {}) const -> bool
+  {
+    return find_if_not_n(first, n, std::ref(pred), std::ref(proj)).value == 0;
+  }
+};
+
+export inline constexpr all_of_n_impl all_of_n{};
+
+struct none_of_n_impl
+{
+  template <std::input_iterator I, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_difference_t<I> n, Pred pred, Proj proj = {}) const -> bool
+  {
+    return find_if_n(first, n, std::ref(pred), std::ref(proj)).value == 0;
+  }
+};
+
+export inline constexpr none_of_n_impl none_of_n{};
+
+struct not_all_of_n_impl
+{
+  template <std::input_iterator I, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_difference_t<I> n, Pred pred, Proj proj = {}) const -> bool
+  {
+    return !all_of_n(first, n, std::ref(pred), std::ref(proj));
+  }
+};
+
+export inline constexpr not_all_of_n_impl not_all_of_n{};
+
+struct any_of_n_impl
+{
+  template <std::input_iterator I, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_difference_t<I> n, Pred pred, Proj proj = {}) const -> bool
+  {
+    return !none_of_n(first, n, std::ref(pred), std::ref(proj));
+  }
+};
+
+export inline constexpr any_of_n_impl any_of_n{};
+
+struct count_not_impl
+{
+  template <std::ranges::input_range R, typename T, typename Proj = std::identity>
+  requires std::indirect_binary_predicate<std::ranges::equal_to, std::projected<std::ranges::iterator_t<R>, Proj>, T const*>
+  [[nodiscard]] constexpr auto
+  operator()(R&& r, T const& value, Proj proj = {}) const -> std::ranges::range_difference_t<R>
+  {
+    return (*this)(std::ranges::begin(r), std::ranges::end(r), value, std::ref(proj));
+  }
+
+  template <std::input_iterator I, std::sentinel_for<I> S, typename T, typename Proj = std::identity>
+  requires std::indirect_binary_predicate<std::ranges::equal_to, std::projected<I, Proj>, T const*>
+  [[nodiscard]] constexpr auto
+  operator()(I first, S last, T const& value, Proj proj = {}) const -> std::iter_difference_t<I>
+  {
+    std::iter_difference_t<I> count{};
+    while (first != last) {
+      if (std::invoke(proj, *first) != value) ++count;
+      ++first;
+    }
+    return count;
+  }
+};
+
+export inline constexpr count_not_impl count_not;
+
+struct count_if_not_impl
+{
+  template <std::ranges::input_range R, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<std::ranges::iterator_t<R>, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(R&& r, Pred pred, Proj proj = {}) const -> std::ranges::range_difference_t<R>
+  {
+    return (*this)(std::ranges::begin(r), std::ranges::end(r), std::ref(pred), std::ref(proj));
+  }
+
+  template <std::input_iterator I, std::sentinel_for<I> S, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, S last, Pred pred, Proj proj = {}) const -> std::iter_difference_t<I>
+  {
+    std::iter_difference_t<I> count{};
+    while (first != last) {
+      if (!std::invoke(pred, std::invoke(proj, *first))) ++count;
+      ++first;
+    }
+    return count;
+  }
+};
+
+export inline constexpr count_if_not_impl count_if_not;
+
+struct count_n_impl
+{
+  template <std::input_iterator I, typename T, typename Proj = std::identity>
+  requires std::indirect_binary_predicate<std::ranges::equal_to, std::projected<I, Proj>, T const*>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_value_t<I> n, T const& value, Proj proj = {}) const -> std::iter_difference_t<I>
+  {
+    std::iter_difference_t<I> count{};
+    while (count_down(n)) {
+      if (std::invoke(proj, *first) == value) ++count;
+      ++first;
+    }
+    return count;
+  }
+};
+
+export inline constexpr count_n_impl count_n;
+
+struct count_not_n_impl
+{
+  template <std::input_iterator I, typename T, typename Proj = std::identity>
+  requires std::indirect_binary_predicate<std::ranges::equal_to, std::projected<I, Proj>, T const*>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_value_t<I> n, T const& value, Proj proj = {}) const -> std::iter_difference_t<I>
+  {
+    std::iter_difference_t<I> count{};
+    while (count_down(n)) {
+      if (std::invoke(proj, *first) != value) ++count;
+      ++first;
+    }
+    return count;
+  }
+};
+
+export inline constexpr count_not_n_impl count_not_n;
+
+struct count_if_n_impl
+{
+  template <std::input_iterator I, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_difference_t<I> n, Pred pred, Proj proj = {}) const -> std::iter_difference_t<I>
+  {
+    std::iter_difference_t<I> count{};
+    while (count_down(n)) {
+      if (std::invoke(pred, std::invoke(proj, *first))) ++count;
+      ++first;
+    }
+    return count;
+  }
+};
+
+export inline constexpr count_if_n_impl count_if_n;
+
+struct count_if_not_n_impl
+{
+  template <std::input_iterator I, typename Pred, typename Proj = std::identity>
+  requires std::indirect_unary_predicate<Pred, std::projected<I, Proj>>
+  [[nodiscard]] constexpr auto
+  operator()(I first, std::iter_difference_t<I> n, Pred pred, Proj proj = {}) const -> std::iter_difference_t<I>
+  {
+    std::iter_difference_t<I> count{};
+    while (count_down(n)) {
+      if (!std::invoke(pred, std::invoke(proj, *first))) ++count;
+      ++first;
+    }
+    return count;
+  }
+};
+
+export inline constexpr count_if_not_n_impl count_if_not_n;
+
 struct fold_left_nonempty_impl
 {
   template <std::ranges::input_range R, typename Op, typename Proj = std::identity>
