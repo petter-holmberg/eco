@@ -437,7 +437,7 @@ test_extent()
 
   {
     eco::extent<int> x;
-    x.adjust_unused_capacity(1);
+    x.set_unused_capacity(1);
     assert(x.capacity() == 1);
     assert(x.unused_capacity() == 1);
     assert(x.size() == 0);
@@ -447,7 +447,7 @@ test_extent()
     x.push_back(0);
     x.push_back(1);
     x.push_back(2);
-    x.adjust_unused_capacity(8);
+    x.set_unused_capacity(8);
     assert(x.capacity() == 11);
     assert(x.unused_capacity() == 8);
     assert(x.size() == 3);
@@ -462,7 +462,7 @@ test_extent()
     x.push_back(2);
     x.push_back(3);
     x.push_back(4);
-    x.adjust_unused_capacity(0);
+    x.set_unused_capacity(0);
     assert(x.capacity() == 5);
     assert(x.unused_capacity() == 0);
     assert(x.size() == 5);
@@ -475,7 +475,7 @@ test_extent()
   {
     eco::extent<int, eco::ssize_t<eco::memory_view>, int> x{1};
     *x.metadata() = 1;
-    x.adjust_unused_capacity(1);
+    x.set_unused_capacity(1);
     assert(x.metadata() != nullptr);
     assert(*x.metadata() == 1);
   }

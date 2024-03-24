@@ -466,14 +466,14 @@ test_array_dict()
   {
     eco::array_dict<char> x;
     auto a = x.insert('a');
-    x.reserve(3);
+    x.set_capacity(3);
     assert(x.size() == 1);
     assert(x[a] == 'a');
     assert(x.capacity() == 3);
-    x.reserve(3);
+    x.set_capacity(3);
     assert(x[a] == 'a');
     assert(x.capacity() == 3);
-    x.reserve(2);
+    x.set_capacity(2);
     assert(x.size() == 1);
     assert(x[a] == 'a');
     assert(x.capacity() == 3);
@@ -482,12 +482,12 @@ test_array_dict()
   {
     eco::array_dict<char> x;
     auto a = x.insert('a');
-    x.shrink_to_fit();
+    x.reset_capacity();
     assert(x.size() == 1);
     assert(x[a] == 'a');
     assert(x.capacity() == 1);
-    x.reserve(3);
-    x.shrink_to_fit();
+    x.set_capacity(3);
+    x.reset_capacity();
     assert(x.size() == 1);
     assert(x[a] == 'a');
     assert(x.capacity() == 1);

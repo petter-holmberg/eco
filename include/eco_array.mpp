@@ -200,33 +200,33 @@ public:
   }
 
   [[nodiscard]] constexpr auto
-  capacity() const noexcept -> ssize_type
-  {
-    return header.capacity();
-  }
-
-  [[nodiscard]] constexpr auto
   max_size() const noexcept -> ssize_type
   {
     return std::numeric_limits<ssize_type>::max() / sizeof(T);
   }
 
+  [[nodiscard]] constexpr auto
+  capacity() const noexcept -> ssize_type
+  {
+    return header.capacity();
+  }
+
   constexpr void
-  reserve(ssize_type cap)
+  set_capacity(ssize_type cap)
   {
     if (capacity() < cap) {
-      header.adjust_unused_capacity(cap - size());
+      header.set_unused_capacity(cap - size());
     }
 
     contract_assert(capacity() >= cap);
   }
 
   constexpr void
-  shrink_to_fit()
+  reset_capacity()
   {
     if (!is_full()) {
       if (*this) {
-        header.adjust_unused_capacity(0);
+        header.set_unused_capacity(0);
       } else {
         header = {};
       }
@@ -261,7 +261,7 @@ public:
     // pre axiom: "range not overlapped with [begin(), end())"
 
     auto const n_elements{std::ranges::distance(range)};
-    reserve(size() + n_elements);
+    set_capacity(size() + n_elements);
     return header.insert_space(n_elements, writer{std::ranges::begin(range), std::ranges::end(range)});
   }
 
@@ -344,10 +344,10 @@ swap(array<T, ga, alloc>& x, array<T, ga, alloc>& y) noexcept
 
 export template <std::copy_constructible T, auto ga, auto& alloc>
 constexpr void
-resize(array<T, ga, alloc>& x, ssize_t<array<T, ga, alloc>> size, value_t<array<T, ga, alloc>> const& value = T{})
+set_size(array<T, ga, alloc>& x, ssize_t<array<T, ga, alloc>> size, value_t<array<T, ga, alloc>> const& value = T{})
 {
   if (x.size() < size) {
-    x.reserve(size);
+    x.set_capacity(size);
     size = size - x.size();
     while (size != 0) {
       x.push_back(value);

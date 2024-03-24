@@ -396,14 +396,14 @@ test_array()
   {
     eco::array<int> x;
     x.push_back(0);
-    x.reserve(3);
+    x.set_capacity(3);
     assert(x.size() == 1);
     assert(x[0] == 0);
     assert(x.capacity() == 3);
-    x.reserve(3);
+    x.set_capacity(3);
     assert(x[0] == 0);
     assert(x.capacity() == 3);
-    x.reserve(2);
+    x.set_capacity(2);
     assert(x.size() == 1);
     assert(x[0] == 0);
     assert(x.capacity() == 3);
@@ -412,12 +412,12 @@ test_array()
   {
     eco::array<int> x;
     x.push_back(0);
-    x.shrink_to_fit();
+    x.reset_capacity();
     assert(x.size() == 1);
     assert(x[0] == 0);
     assert(x.capacity() == 1);
-    x.reserve(3);
-    x.shrink_to_fit();
+    x.set_capacity(3);
+    x.reset_capacity();
     assert(x.size() == 1);
     assert(x[0] == 0);
     assert(x.capacity() == 1);
@@ -552,25 +552,25 @@ test_array()
 
   {
     eco::array<int> x;
-    eco::resize(x, 0, 1);
+    eco::set_size(x, 0, 1);
     assert(x.size() == 0);
     assert(x.capacity() == 0);
-    eco::resize(x, 2, 1);
+    eco::set_size(x, 2, 1);
     assert(x.size() == 2);
     assert(x[0] == 1);
     assert(x[1] == 1);
-    eco::resize(x, 4, 2);
+    eco::set_size(x, 4, 2);
     assert(x.size() == 4);
     assert(x[0] == 1);
     assert(x[1] == 1);
     assert(x[2] == 2);
     assert(x[3] == 2);
     assert(x.capacity() == 4);
-    eco::resize(x, 2, 3);
+    eco::set_size(x, 2, 3);
     assert(x.size() == 2);
     assert(x[0] == 1);
     assert(x[1] == 1);
-    eco::resize(x, 0, 0);
+    eco::set_size(x, 0, 0);
     assert(x.size() == 0);
     assert(x.capacity() == 4);
   }

@@ -433,7 +433,7 @@ public:
   }
 
   constexpr void
-  adjust_unused_capacity(Size n)
+  set_unused_capacity(Size n)
   {
     contract_assert(n >= 0);
 

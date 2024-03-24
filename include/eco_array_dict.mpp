@@ -175,33 +175,33 @@ public:
   }
 
   [[nodiscard]] constexpr auto
-  capacity() const noexcept -> ssize_type
-  {
-    return data.capacity();
-  }
-
-  [[nodiscard]] constexpr auto
   max_size() const noexcept -> ssize_type
   {
     return std::numeric_limits<key_type>::max();
   }
 
-  constexpr void
-  reserve(ssize_type cap)
+  [[nodiscard]] constexpr auto
+  capacity() const noexcept -> ssize_type
   {
-    data.reserve(cap);
-    index.reserve(cap);
-    reverse_index.reserve(cap);
+    return data.capacity();
+  }
+
+  constexpr void
+  set_capacity(ssize_type cap)
+  {
+    data.set_capacity(cap);
+    index.set_capacity(cap);
+    reverse_index.set_capacity(cap);
 
     contract_assert(capacity() >= cap);
   }
 
   constexpr void
-  shrink_to_fit()
+  reset_capacity()
   {
-    data.shrink_to_fit();
-    index.shrink_to_fit();
-    reverse_index.shrink_to_fit();
+    data.reset_capacity();
+    index.reset_capacity();
+    reverse_index.reset_capacity();
   }
 
   constexpr auto

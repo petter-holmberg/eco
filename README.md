@@ -14,32 +14,6 @@ given value, it returns the end position of the range.
 
 Example: `<find_not, 1> [1, 2, 3] -> @2`
 
-`find_n` takes a `std::ranges::input_iterator` and a count, a value, and
-optionally a projection. It returns the first position in the range with a
-projected element equal to the given value, along with the remaining count.
-
-Example: `<find_n, 3, 2> [1, 2, 3] -> [@2, 1]`
-
-`find_not_n` takes a `std::ranges::input_iterator` and a count, a value, and
-optionally a projection. It returns the first position in the range with a
-projected element not equal to the given value, along with the remaining count.
-
-Example: `<find_not_n, 3, 2> [1, 2, 3] -> [@1, 2]`
-
-`find_if_n` takes a `std::ranges::input_iterator` and a count, a unary
-predicate, and optionally a projection. It returns the first position in the
-range with a projected element satisfying the given predicate, along with the
-remaining count.
-
-Example: `<find_if_n, 3, (>1)> [1, 2, 3] -> [@2, 1]`
-
-`find_if_not_n` takes a `std::ranges::input_iterator` and a count, a unary
-predicate, and optionally a projection. It returns the first position in the
-range with a projected element not satisfying the given predicate, along with
-the remaining count.
-
-Example: `<find_if_not_n, 3, (>2)> [1, 2, 3] -> [@1, 2]`
-
 `find_if_unguarded` takes a `std::ranges::input_iterator`, a unary predicate,
 and optionally a projection. It returns the first position in the range with a
 projected element satisfying the given predicate. It is a precondition that at
@@ -60,30 +34,6 @@ in the range satisfy the given predicate.
 
 Example: `<not_all_of, (>3)> [1, 2, 3] -> true`
 
-`all_of_n` takes a `std::ranges::input_iterator` and a count, a unary
-predicate, and optionally a projection. It returns true iff all of the projected
-elements in the range satisfy the given predicate.
-
-Example: `<all_of_n, 3, (<4)> [1, 2, 3] -> true`
-
-`none_of_n` takes a `std::ranges::input_iterator` and a count, a unary
-predicate, and optionally a projection. It returns true iff none of the
-projected elements in the range satisfy the given predicate.
-
-Example: `<none_of_n, 3, (>3)> [1, 2, 3] -> true`
-
-`not_all_of_n` takes a `std::ranges::input_iterator` and a count, a unary
-predicate, and optionally a projection. It returns true iff not all of the
-projected elements in the range satisfy the given predicate.
-
-Example: `<not_all_of_n, 3, (<2)> [1, 2, 3] -> true`
-
-`any_of_n` takes a `std::ranges::input_iterator` and a count, a unary predicate,
-and optionally a projection. It returns true iff any of the projected elements
-in the range satisfy the given predicate.
-
-Example: `<any_of_n, 3, (>1)> [1, 2, 3] -> true`
-
 `count_not` takes a `std::ranges::input_range`, a value, and optionally a
 projection. It counts the number of projected elements that are not equal to the
 given predicate.
@@ -96,90 +46,88 @@ satisfy the given predicate.
 
 Example: `<count_if_not, (<2)> [1, 2, 3] -> 2`
 
-`count_n` takes a `std::ranges::input_iterator` and a count, a value, and
-optionally a projection. It counts the number of projected elements that are
-equal to the given value.
-
-Example: `<count_n, 3, 2> [1, 2, 3] -> 1`
-
-`count_not_n` takes a `std::ranges::input_iterator` and a count, a value, and
-optionally a projection. It counts the number of projected elements that are
-not equal to the given value.
-
-Example: `<count_not_n, 3, 2> [1, 2, 3] -> 2`
-
-`count_if_n` takes a `std::ranges::input_iterator` and a count, a unary
-predicate, and optionally a projection. It counts the number of projected
-elements that satisfy the given predicate.
-
-Example: `<count_if_n, 3, (<2)> [1, 2, 3] -> 1`
-
-`count_if_not_n` takes a `std::ranges::input_iterator` and a count, a unary
-predicate, and optionally a projection. It counts the number of projected
-elements that does not satisfy the given predicate.
-
-Example: `<count_if_not_n, 3, (<2)> [1, 2, 3] -> 2`
-
 ## Fold algorithms
 
-`fold_left` takes a `std::ranges::input_range`, an identity value,
-a binary operator, and a projection, which defaults to `std::identity`.
-It applies the operator to the projected elements in the range,
-from left to right.
+`fold_left` takes a `std::ranges::input_range`, a partially associative binary
+operator, an identity value, and a projection, which defaults to
+`std::identity`.
+It invokes the operator on the projected elements in the range, from left to
+right.
 If the range is empty, it returns the identity value.
 
-Example: `<fold_left, 0, +> [] -> 0`
-Example: `<fold_left, 0, +> [1 2 3 4] -> 10`
-Example: `<fold_left, 0, -> [] -> 0`
-Example: `<fold_left, 0, -> [1 2 3 4] -> -8`
-Example: `<fold_left, 1, *> [] -> 1`
-Example: `<fold_left, 1, *> [1 2 3 4] -> 24`
+Example: `<fold_left, +, 0> [] -> 0`
+Example: `<fold_left, +, 0> [1 2 3 4] -> 10`
+Example: `<fold_left, -, 0> [] -> 0`
+Example: `<fold_left, -, 0> [1 2 3 4] -> -8`
+Example: `<fold_left, *, 1> [] -> 1`
+Example: `<fold_left, *, 1> [1 2 3 4] -> 24`
 
 `fold_left_nonempty` omits the identity value and requires the range to be
 nonempty.
 
-`fold_right` takes a `std::ranges::bidirectional_range`, an identity value,
-a binary operator, and a projection, which defaults to `std::identity`.
-It applies the operator to the projected elements in the range,
+`fold_left_nonneutral` takes a `std::ranges::input_range`, a partially
+associative binary operator, an identity value, and a projection,
+which defaults to `std::identity`.
+It invokes the operator on the projected elements in the range,
+from left to right, skipping over elements equal to the identity value.
+If the range is empty, it returns the identity value.
+
+`fold_right` takes a `std::ranges::bidirectional_range`, a partially associative
+binary operator, an identity value, and a projection, which defaults to
+`std::identity`.
+It invokes the operator on the projected elements in the range,
 from right to left.
 If the range is empty, it returns the identity value.
 
-Example: `<fold_right, 0, +> [] -> 0`
-Example: `<fold_right, 0, +> [1 2 3 4] -> 10`
-Example: `<fold_right, 0, -> [] -> 0`
-Example: `<fold_right, 0, -> [1 2 3 4] -> -2`
-Example: `<fold_right, 1, *> [] -> 1`
-Example: `<fold_right, 1, *> [1 2 3 4] -> 24`
+Example: `<fold_right, +, 0> [] -> 0`
+Example: `<fold_right, +, 0> [1 2 3 4] -> 10`
+Example: `<fold_right, -, 0> [] -> 0`
+Example: `<fold_right, -, 0> [1 2 3 4] -> -2`
+Example: `<fold_right, *, 1> [] -> 1`
+Example: `<fold_right, *, 1> [1 2 3 4] -> 24`
 
 `fold_right_nonempty` omits the identity value and requires the range to be
 nonempty.
 
-`fold_left_binary` takes two `std::input_range`s, an identity value,
-two binary operators, and two projection functions,
-which default to `std::identity`.
+`fold_right_nonneutral` takes a `std::ranges::input_range`, a partially
+associative binary operator, an identity value, and a projection, which defaults
+to `std::identity`.
+It invokes the operator on the projected elements in the range,
+from right to left, skipping over elements equal to the identity value.
+If the range is empty, it returns the identity value.
+
+`fold_balanced` takes a `std::ranges::forward_range`, a partially associative
+associative binary operator, an identity value, and a projection, which defaults
+to `std::identity`.
+It invokes the operator on the projected elements in the range, from left to
+right, skipping over elements equal to the identity value. Folded elements are
+inserted into a balanced reduction tree, ensuring that no element is involved
+in more than lg(n) operations.
+
+`fold_left_binary` takes two `std::input_range`s, two binary operators, an
+identity value, and two projection functions, which default to `std::identity`.
 It pairwise maps all projected elements in the two ranges,
 using the second operator, and reduces the results using the first operator,
 from left to right.
 It requires the second range not to be shorter than the first.
 
-Example: `<fold_left_binary, 0, +, *> [0 1 2 3] [2 3 4 5] -> 26`
-Example: `<fold_left_binary, 0, +, *> [0 1 2 3] [2 3 4 5 6] -> 26`
-Example: `<fold_left_binary, 0, +, *> [] [2 3 4 5 6] -> 0`
+Example: `<fold_left_binary, +, *, 0> [0 1 2 3] [2 3 4 5] -> 26`
+Example: `<fold_left_binary, +, *, 0> [0 1 2 3] [2 3 4 5 6] -> 26`
+Example: `<fold_left_binary, +, *, 0> [] [2 3 4 5 6] -> 0`
 
 `fold_left_binary_nonempty` omits the identity value and requires the range to
 be nonempty.
 
-`fold_right_binary` takes two `std::input_range`s, an identity value,
-two binary operators, and two projection functions,
-which default to `std::identity`.
+`fold_right_binary` takes two `std::input_range`s, two binary operators, an
+identity value, and two projection functions, which default to `std::identity`.
 It pairwise maps all projected elements in the two ranges,
 using the second operator, and reduces the results using the first operator,
 from right to left.
 It requires the second range not to be shorter than the first.
 
-Example: `<fold_right_binary, 0, +, *> [0 1 2 3] [2 3 4 5] -> 26`
-Example: `<fold_right_binary, 0, +, *> [0 1 2 3] [2 3 4 5 6] -> 32`
-Example: `<fold_right_binary, 0, +, *> [] [2 3 4 5] -> 0`
+Example: `<fold_right_binary, +, *, 0> [0 1 2 3] [2 3 4 5] -> 26`
+Example: `<fold_right_binary, +, *, 0> [0 1 2 3] [2 3 4 5 6] -> 32`
+Example: `<fold_right_binary, +, *, 0> [] [2 3 4 5] -> 0`
 
 `fold_right_binary_nonempty` omits the identity value and requires the range to
 be nonempty.
@@ -269,10 +217,10 @@ from a  `std::ranges::forward_range`.
 - `begin()` returns an iterator to the beginning of the `array`.
 - `end()` returns an iterator to the end of the `array`.
 - `size()` returns the size of the `array`.
-- `capacity()` returns the size of the allocated space in the `array`.
 - `max_size()` returns the maximum number of elements the `array` can contain.
-- `reserve(i)` ensures there is reserved space for up to `i` elements.
-- `shrink_to_fit()` ensures `capacity() == size()`.
+- `capacity()` returns the size of the allocated space in the `array`.
+- `set_capacity(i)` ensures there is allocated space for up to `i` elements.
+- `reset_capacity()` ensures `capacity() == size()`.
 - `push_back(args)` appends an element constructed from `args`.
 - `pop_back()` removes the last element.
 - `append(range)` appends a `std::forward_range` of elements.
@@ -281,7 +229,7 @@ from a  `std::ranges::forward_range`.
 - `erase(pos)` erases the element at `pos`.
 - `erase(range)` erases a range of elements (`range` must be in the `array`).
 - `clear()` erases all elements in the `array`, without changing capacity.
-- `resize(x, size, value)` resizes `x`, appending `value`s if `size > x.size()`.
+- `set_size(x, size, value)` resizes `x`, appending `value`s if `size > x.size()`.
 
 ### `array_dict`
 
@@ -334,11 +282,11 @@ maximum possible size of the `array_dict`.
 - `begin()` returns an iterator to the beginning of the `array_dict`.
 - `end()` returns an iterator to the end of the `array_dict`.
 - `size()` returns the size of the `array_dict`.
-- `capacity()` returns the size of the allocated space in the `array_dict`.
 - `max_size()` returns the maximum number of elements the `array_dict` can
 contain.
-- `reserve(i)` ensures there is reserved space for up to `i` elements.
-- `shrink_to_fit()` ensures `capacity() == size()`.
+- `capacity()` returns the size of the allocated space in the `array_dict`.
+- `set_capacity(i)` ensures there is allocated space for up to `i` elements.
+- `reset_capacity()` ensures `capacity() == size()`.
 - `has_key(key)` returns `true` iff `key` maps to an element in the
 `array_dict`.
 - `insert(args)` inserts an element constructed from `args`, returnings its key.
@@ -402,11 +350,11 @@ assigned from a `std::ranges::forward_range`.
 - `end()` returns an iterator to the end of the `fixed_array`.
 - `cend()` returns an iterator to the end of the `fixed_array`.
 - `size()` returns the size of the `fixed_array`.
-- `capacity()` returns the size of the allocated space in the `fixed_array`.
 - `max_size()` returns the approximate maximum number of elements the
 `fixed_array` can contain.
-- `reserve(i)` ensures there is reserved space for up to `i` elements.
-- `shrink_to_fit()` minimizes reserved space.
+- `capacity()` returns the size of the allocated space in the `fixed_array`.
+- `set_capacity(i)` ensures there is allocated space for up to `i` elements.
+- `reset_capacity()` minimizes allocated space.
 - `push_back(args)` appends an element constructed from `args`.
 - `pop_back()` removes the last element.
 - `append(range)` appends a `std::forward_range` of elements.
@@ -416,7 +364,7 @@ assigned from a `std::ranges::forward_range`.
 - `erase(range)` erases a range of elements (`range` must be in the
 `fixed_array`).
 - `clear()` erases all elements in the `fixed_array`, without changing capacity.
-- `resize(x, size, value)` resizes `x`, appending `value`s if `size > x.size()`.
+- `set_size(x, size, value)` resizes `x`, appending `value`s if `size > x.size()`.
 
 ## Bitvectors
 
