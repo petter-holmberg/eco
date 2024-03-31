@@ -117,6 +117,52 @@ test_louds()
   assert(eco::lca(x, x.root(), x.root()) == x.root());
   assert(eco::lca(x, x.first_child(x.root()), x.last_child(x.root())) == x.root());
   assert(eco::lca(x, x.first_child(x.first_child(x.root())), x.last_child(x.first_child(x.root()))) == x.first_child(x.root()));
+
+  auto pos = x.begin();
+  auto end = x.end();
+
+  assert(*pos == 2);
+  ++pos;
+  assert(*pos == 6);
+  ++pos;
+  assert(*pos == 13);
+  ++pos;
+  assert(*pos == 13);
+  ++pos;
+  assert(*pos == 14);
+  ++pos;
+  assert(*pos == 14);
+  ++pos;
+  assert(*pos == 6);
+  ++pos;
+  assert(*pos == 9);
+  ++pos;
+  assert(*pos == 15);
+  ++pos;
+  assert(*pos == 20);
+  ++pos;
+  assert(*pos == 28);
+
+  --pos;
+  assert(*pos == 20);
+  --pos;
+  assert(*pos == 15);
+  --pos;
+  assert(*pos == 9);
+  --pos;
+  assert(*pos == 6);
+  --pos;
+  assert(*pos == 14);
+  --pos;
+  assert(*pos == 14);
+  --pos;
+  assert(*pos == 13);
+  --pos;
+  assert(*pos == 13);
+  --pos;
+  assert(*pos == 6);
+  --pos;
+  assert(*pos == 2);
 }
 
 #endif

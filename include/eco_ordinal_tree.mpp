@@ -21,7 +21,11 @@ public:
   using index_type = ssize_t<memory_view>;
 
   [[nodiscard]] constexpr
-  louds() noexcept = default;
+  louds()
+    : bits{2}
+  {
+    bits.bitset(0);
+  }
 
   template <linked_bicursor cur>
   [[nodiscard]] constexpr
@@ -139,7 +143,122 @@ public:
     const auto j = bits.select_1(bits.rank_0(v) - 1);
     return j - pred_0(bits, j) - 1;
   }
+
+  class iterator
+  {
+    louds const* tree{};
+    ssize_type node{};
+    bool trailing{};
+
+  public:
+    using iterator_concept = std::bidirectional_iterator_tag;
+    using value_type = ssize_type;
+    using difference_type = ssize_type;
+
+    constexpr
+    iterator() = default;
+
+    constexpr
+    iterator(louds const* t, ssize_type n, bool tr)
+      : tree{t}, node{n}, trailing{tr}
+    {}
+
+    [[nodiscard]] friend constexpr auto
+    operator==(iterator const& i, iterator const& j) -> bool = default;
+
+    [[nodiscard]] explicit constexpr
+    operator bool() const noexcept
+    {
+      return trailing;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator*() const -> value_type
+    {
+      return node;
+    }
+
+    constexpr auto
+    operator++() -> iterator&
+    {
+      if (trailing) {
+        contract_assert(node != tree->root());
+
+        auto parent = tree->parent(node);
+        if (node == tree->last_child(parent)) {
+          node = parent;
+        } else {
+          trailing = false;
+          node = tree->next_sibling(node);
+        }
+      } else {
+        if (tree->is_leaf(node)) {
+          trailing = true;
+        } else {
+          node = tree->first_child(node);
+        }
+      }
+      return *this;
+    }
+
+    constexpr auto
+    operator++(int) -> iterator
+    {
+      auto i{*this};
+      ++(*this);
+      return i;
+    }
+
+    constexpr auto
+    operator--() -> iterator&
+    {
+      if (trailing) {
+        if (tree->is_leaf(node)) {
+          trailing = false;
+        } else {
+          node = tree->last_child(node);
+        }
+      } else {
+        contract_assert(node != tree->root());
+
+        auto parent = tree->parent(node);
+        if (node == tree->first_child(parent)) {
+          node = parent;
+        } else {
+          trailing = true;
+          node = tree->prev_sibling(node);
+        }
+      }
+      return *this;
+    }
+
+    constexpr auto
+    operator--(int) -> iterator
+    {
+      auto i{*this};
+      --(*this);
+      return i;
+    }
+  };
+
+  [[nodiscard]] constexpr auto
+  begin() const noexcept -> iterator
+  {
+    if (is_leaf(root())) {
+      return end();
+    } else {
+      return {this, root(), false};
+    }
+  }
+
+  [[nodiscard]] constexpr auto
+  end() const noexcept -> iterator
+  {
+    return iterator{this, 0, true};
+  }
 };
+
+static_assert(std::bidirectional_iterator<louds<basic_bitvector<>>::iterator>);
 
 struct lca_impl
 {

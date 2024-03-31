@@ -407,6 +407,8 @@ a pair of `bidirectional_bicursor`s.
 ordinal tree. It can be constructed from a tree of a known size with a pair of
 `linked_bicursor`s, where the `left_branch` points to the first child of a node
 and `right branch` points to the next sibling.
+`louds::iterator` is a `std::bidirectional_iterator` that performs full-order
+traversal of a `louds` tree, visiting the nodes in both pre- and post-order.
 
 - `root()` returns the root node of the tree.
 - `first_child(v)` returns the first child of node `v`.
@@ -421,6 +423,8 @@ and `right branch` points to the next sibling.
 - `child(v, n)` returns the `n`:th child of node `v`.
 - `child_rank(v)` returns the `n` such that node `v` is the `n`:th child of
 its parent.
+- `begin` returns a `louds::iterator` pointing at the root node of the tree.
+- `end` returns a `louds::iterator` pointing past the root node of the tree.
 - `lca(t, u, v)` returns the lowest common ancestor of nodes `u` and `v` in `t`.
 
 ## Sequences
