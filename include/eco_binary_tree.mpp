@@ -38,12 +38,12 @@ public:
       root = queue.value(tail);
       if (has_left_successor(root)) {
         head = queue.allocate_node(left_successor(root), head);
-        bits.bitset(i);
+        bits.bit_set(i);
       }
       ++i;
       if (has_right_successor(root)) {
         head = queue.allocate_node(right_successor(root), head);
-        bits.bitset(i);
+        bits.bit_set(i);
       }
       ++i;
       auto prev = queue.prev(tail);
@@ -70,13 +70,13 @@ public:
   [[nodiscard]] constexpr auto
   has_left_child(ssize_type v) const noexcept -> bool
   {
-    return bits.bitread(2 * v);
+    return bits.bit_read(2 * v);
   }
 
   [[nodiscard]] constexpr auto
   has_right_child(ssize_type v) const noexcept -> bool
   {
-    return bits.bitread(2 * v + 1);
+    return bits.bit_read(2 * v + 1);
   }
 
   [[nodiscard]] constexpr auto

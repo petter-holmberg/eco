@@ -11,12 +11,19 @@ import std;
 
 namespace eco::inline cpp23 {
 
+export template <std::integral T, std::integral U>
+[[nodiscard]] constexpr auto
+div_ceil(T x, U y) -> std::common_type_t<T, U>
+{
+  return !!x + ((x - !!x) / y);
+}
+
 export template <typename T>
 inline constexpr int bit_size_v = CHAR_BIT * sizeof(T);
 
 export template <std::unsigned_integral T>
 [[nodiscard]] constexpr auto
-bit_read(std::uint8_t i, T x) noexcept -> T
+bit_read(T x, std::uint8_t i) noexcept -> T
 {
   contract_assert(i < bit_size_v<T>);
 
@@ -25,7 +32,7 @@ bit_read(std::uint8_t i, T x) noexcept -> T
 
 export template <std::unsigned_integral T>
 [[nodiscard]] constexpr auto
-bit_set(std::uint8_t i, T& x) noexcept
+bit_set(T& x, std::uint8_t i) noexcept
 {
   contract_assert(i < bit_size_v<T>);
 
@@ -34,7 +41,7 @@ bit_set(std::uint8_t i, T& x) noexcept
 
 export template <std::unsigned_integral T>
 [[nodiscard]] constexpr auto
-bit_reset(std::uint8_t i, T& x) noexcept
+bit_clear(T& x, std::uint8_t i) noexcept
 {
   contract_assert(i < bit_size_v<T>);
 
@@ -43,7 +50,7 @@ bit_reset(std::uint8_t i, T& x) noexcept
 
 export template <std::unsigned_integral T>
 [[nodiscard]] constexpr auto
-bit_flip(std::uint8_t i, T& x) noexcept
+bit_flip(T& x, std::uint8_t i) noexcept
 {
   contract_assert(i < bit_size_v<T>);
 
@@ -65,7 +72,7 @@ bits_read(T x) noexcept -> T
 export template <std::uint8_t n, std::unsigned_integral T>
 requires (n > 0 && n <= bit_size_v<T>)
 [[nodiscard]] constexpr auto
-bits_read(std::uint8_t i, T x) noexcept -> T
+bits_read(T x, std::uint8_t i) noexcept -> T
 {
   contract_assert(i < bit_size_v<T>);
   contract_assert(i + n <= bit_size_v<T>);
@@ -79,7 +86,7 @@ bits_read(std::uint8_t i, T x) noexcept -> T
 
 export template <std::unsigned_integral T>
 [[nodiscard]] constexpr auto
-bits_read(std::uint8_t n, std::uint8_t i, T x) noexcept -> T
+bits_read(T x, std::uint8_t n, std::uint8_t i) noexcept -> T
 {
   contract_assert(n > 0);
   contract_assert(i < bit_size_v<T>);
@@ -91,7 +98,7 @@ bits_read(std::uint8_t n, std::uint8_t i, T x) noexcept -> T
 export template <std::uint8_t n, std::unsigned_integral T>
 requires (n > 0 && n <= bit_size_v<T>)
 constexpr void
-bits_write(std::uint8_t i, T& x, T value) noexcept
+bits_write(T& x, T value, std::uint8_t i) noexcept
 {
   contract_assert(i < bit_size_v<T>);
   contract_assert(i + n <= bit_size_v<T>);
@@ -102,7 +109,7 @@ bits_write(std::uint8_t i, T& x, T value) noexcept
 
 export template <std::unsigned_integral T>
 constexpr void
-bits_write(std::uint8_t n, std::uint8_t i, T& x, T value) noexcept
+bits_write(T& x, T value, std::uint8_t n, std::uint8_t i) noexcept
 {
   contract_assert(n > 0);
   contract_assert(n <= bit_size_v<T>);
@@ -124,7 +131,7 @@ bits_read_straddled(T x, T y) noexcept -> T
 export template <std::uint8_t n, std::unsigned_integral T>
 requires (n > 0 && n <= bit_size_v<T>)
 [[nodiscard]] constexpr auto
-bits_read_straddled(std::uint8_t i, T x, T y) noexcept -> T
+bits_read_straddled(T x, T y, std::uint8_t i) noexcept -> T
 {
   contract_assert(i < bit_size_v<T>);
   contract_assert(i + n > bit_size_v<T>);
@@ -134,7 +141,7 @@ bits_read_straddled(std::uint8_t i, T x, T y) noexcept -> T
 
 export template <std::unsigned_integral T>
 [[nodiscard]] constexpr auto
-bits_read_straddled(std::uint8_t n, std::uint8_t i, T x, T y) noexcept -> T
+bits_read_straddled(T x, T y, std::uint8_t n, std::uint8_t i) noexcept -> T
 {
   contract_assert(n > 0);
   contract_assert(n <= bit_size_v<T>);
@@ -147,7 +154,7 @@ bits_read_straddled(std::uint8_t n, std::uint8_t i, T x, T y) noexcept -> T
 export template <std::uint8_t n, std::unsigned_integral T>
 requires (n > 1 && n <= bit_size_v<T>)
 constexpr void
-bits_write_straddled(std::uint8_t i, T& x, T&y, T value) noexcept
+bits_write_straddled(T& x, T&y, T value, std::uint8_t i) noexcept
 {
   contract_assert(i < bit_size_v<T>);
   contract_assert(i + n > bit_size_v<T>);
@@ -158,7 +165,7 @@ bits_write_straddled(std::uint8_t i, T& x, T&y, T value) noexcept
 
 export template <std::unsigned_integral T>
 constexpr void
-bits_write_straddled(std::uint8_t n, std::uint8_t i, T& x, T&y, T value) noexcept
+bits_write_straddled(T& x, T&y, T value, std::uint8_t n, std::uint8_t i) noexcept
 {
   contract_assert(n > 1);
   contract_assert(n <= bit_size_v<T>);

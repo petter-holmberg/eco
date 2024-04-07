@@ -12,13 +12,6 @@ import :extent;
 
 namespace eco::inline cpp23 {
 
-template <std::integral T, std::integral U>
-[[nodiscard]] constexpr auto
-div_ceil(T x, U y) -> std::common_type_t<T, U>
-{
-  return !!x + ((x - !!x) / y);
-}
-
 export template
 <
   int w,
@@ -59,12 +52,12 @@ private:
   read(T const* pos, std::uint8_t i) -> T
   {
     if constexpr(bit_size_v<T> % w == 0) {
-      return bits_read<w>(i, *pos);
+      return bits_read<w>(*pos, i);
     } else {
       if (i + w <= bit_size_v<T>) {
-        return bits_read<w>(i, *pos);
+        return bits_read<w>(*pos, i);
       } else {
-        return bits_read_straddled<w>(i, *pos, *(pos + 1));
+        return bits_read_straddled<w>(*pos, *(pos + 1), i);
       }
     }
   }
@@ -73,12 +66,12 @@ private:
   write(T x, T* pos, std::uint8_t i)
   {
     if constexpr(bit_size_v<T> % w == 0) {
-      bits_write<w>(i, *pos, x);
+      bits_write<w>(*pos, x, i);
     } else {
       if (i + w <= bit_size_v<T>) {
-        bits_write<w>(i, *pos, x);
+        bits_write<w>(*pos, x, i);
       } else {
-        bits_write_straddled<w>(i, *pos, *(pos + 1), x);
+        bits_write_straddled<w>(*pos, *(pos + 1), x, i);
       }
     }
   }

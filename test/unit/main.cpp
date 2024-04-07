@@ -125,6 +125,7 @@ set_right_successor(ptree_cursor i, ptree_cursor j)
 #include "test_list_pool.hpp"
 #include "test_fixed_array.hpp"
 #include "test_bitvector.hpp"
+#include "test_parentheses.hpp"
 #include "test_binary_tree.hpp"
 #include "test_ordinal_tree.hpp"
 #include "test_fold.hpp"
@@ -156,6 +157,7 @@ int main()
   test_fixed_array<32, std::uint64_t>();
   test_fixed_array<63, std::uint64_t>();
   test_basic_bitvector();
+  test_balanced_parentheses();
   test_binary_louds();
   test_louds();
   test_fold();

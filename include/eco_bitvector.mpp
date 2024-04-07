@@ -1,21 +1,27 @@
 module;
 
+#include <cassert>
+
+#define contract_assert assert
+
 export module eco:bitvector;
 
 import std;
+import :array;
+import :bit;
 import :extent;
 
 namespace eco::inline cpp23 {
 
 export template <typename T>
 concept bitvector =
-  std::regular<T> &&
+  std::totally_ordered<T> &&
   std::constructible_from<ssize_t<T>> &&
   requires (T b, T const& cb, ssize_t<T> i) {
     { cb.size() } -> std::same_as<ssize_t<T>>;
-    { cb.bitread(i) } -> boolean_testable;
-    b.bitset(i);
-    b.bitclear(i);
+    { cb.bit_read(i) } -> boolean_testable;
+    b.bit_set(i);
+    b.bit_clear(i);
     b.init();
     { cb.rank_0(i) } -> std::same_as<ssize_t<T>>;
     { cb.rank_1(i) } -> std::same_as<ssize_t<T>>;
@@ -73,32 +79,46 @@ public:
   }
 
   [[nodiscard]] constexpr auto
-  bitread(ssize_type i) const noexcept -> bool
+  bit_read(ssize_type i) const noexcept -> bool
   {
+    contract_assert(i >= 0 && i < size());
+
     return *(words.begin() + (i / w())) >> (i % w()) & 1u;
   }
 
   constexpr void
-  bitset(ssize_type i) noexcept
+  bit_set(ssize_type i) noexcept
   {
+    contract_assert(i >= 0 && i < size());
+
     *(words.begin() + (i / w())) |= (1u << (i % w()));
+
+    contract_assert(bit_read(i) == 1);
   }
 
   constexpr void
-  bitclear(ssize_type i) noexcept
+  bit_clear(ssize_type i) noexcept
   {
+    contract_assert(i >= 0 && i < size());
+
     *(words.begin() + (i / w())) &= ~(1u << (i % w()));
+
+    contract_assert(bit_read(i) == 0);
   }
 
   [[nodiscard]] constexpr auto
   rank_0(ssize_type i) const noexcept -> ssize_type
   {
+    contract_assert(i >= 0 && i < size());
+
     return i - rank_1(i);
   }
 
   [[nodiscard]] constexpr auto
   rank_1(ssize_type i) const noexcept -> ssize_type
   {
+    contract_assert(i >= 0 && i < size());
+
     auto quot = i / w();
     auto rem = i % w();
     ssize_type ret{};
@@ -114,6 +134,8 @@ public:
   [[nodiscard]] constexpr auto
   select_0(ssize_type i) const noexcept -> ssize_type
   {
+    contract_assert(i >= 0 && i < size());
+
     auto quot = i / w();
     ssize_type ret{};
     auto j = 0;
@@ -126,7 +148,7 @@ public:
     }
     j *= w();
     while (j != size()) {
-      if (!bitread(j)) ++ret;
+      if (!bit_read(j)) ++ret;
       if (ret > i) return j;
       ++j;
     }
@@ -136,6 +158,8 @@ public:
   [[nodiscard]] constexpr auto
   select_1(ssize_type i) const noexcept -> ssize_type
   {
+    contract_assert(i >= 0 && i < size());
+
     auto quot = i / w();
     ssize_type ret{};
     auto j = 0;
@@ -148,16 +172,180 @@ public:
     }
     j *= w();
     while (j != size()) {
-      if (bitread(j)) ++ret;
+      if (bit_read(j)) ++ret;
       if (ret > i) return j;
       ++j;
     }
     return j;
   }
+
+  class iterator
+  {
+    basic_bitvector* b;
+    ssize_type pos;
+
+  public:
+    using iterator_concept = std::random_access_iterator_tag;
+    using value_type = bool;
+    using difference_type = ssize_type;
+
+    constexpr
+    iterator() = default;
+
+    constexpr
+    iterator(basic_bitvector* b, ssize_type i)
+      : b{b}, pos{i}
+    {}
+
+    [[nodiscard]] friend constexpr auto
+    operator==(iterator const& i, iterator const& j) -> bool
+    {
+      contract_assert(i.b == j.b);
+
+      return i.pos == j.pos;
+    }
+
+    [[nodiscard]] friend constexpr auto
+    operator!=(iterator const& i, iterator const& j) -> bool
+    {
+      contract_assert(i.b == j.b);
+
+      return i.pos != j.pos;
+    }
+
+    [[nodiscard]] friend constexpr auto
+    operator<(iterator const& i, iterator const& j) -> bool
+    {
+      contract_assert(i.b == j.b);
+
+      return i.pos < j.pos;
+    }
+
+    [[nodiscard]] friend constexpr auto
+    operator>=(iterator const& i, iterator const& j) -> bool
+    {
+      contract_assert(i.b == j.b);
+
+      return i.pos >= j.pos;
+    }
+
+    [[nodiscard]] friend constexpr auto
+    operator>(iterator const& i, iterator const& j) -> bool
+    {
+      contract_assert(i.b == j.b);
+
+      return i.pos > j.pos;
+    }
+
+    [[nodiscard]] friend constexpr auto
+    operator<=(iterator const& i, iterator const& j) -> bool
+    {
+      contract_assert(i.b == j.b);
+
+      return i.pos <= j.pos;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator*() const -> value_type
+    {
+      return b->bit_read(pos);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator[](difference_type d) const -> value_type
+    {
+      return b->bit_read(pos);
+    }
+
+    constexpr auto
+    operator++() -> iterator&
+    {
+      ++pos;
+      return *this;
+    }
+
+    constexpr auto
+    operator++(int) -> iterator
+    {
+      auto i{*this};
+      pos++;
+      return i;
+    }
+
+    constexpr auto
+    operator--() -> iterator&
+    {
+      --pos;
+      return *this;
+    }
+
+    constexpr auto
+    operator--(int) -> iterator
+    {
+      auto i{*this};
+      pos--;
+      return i;
+    }
+
+    [[nodiscard]] friend constexpr auto
+    operator-(iterator const& i, iterator const& j) -> difference_type
+    {
+      contract_assert(i.b == j.b);
+
+      return i.pos - j.pos;
+    }
+
+    constexpr auto
+    operator+=(difference_type d) -> iterator&
+    {
+      pos += d;
+      return *this;
+    }
+
+    [[nodiscard]] friend constexpr auto
+    operator+(iterator i, difference_type d) -> iterator
+    {
+      i.pos = i.pos + d;
+      return i;
+    }
+
+    [[nodiscard]] friend constexpr auto
+    operator+(difference_type d, iterator i) -> iterator
+    {
+      i.pos = d + i.pos;
+      return i;
+    }
+
+    constexpr auto
+    operator-=(difference_type d) -> iterator&
+    {
+      pos -= d;
+      return *this;
+    }
+
+    [[nodiscard]] friend constexpr auto
+    operator-(iterator i, difference_type d) -> iterator
+    {
+      i.pos = i.pos - d;
+      return i;
+    }
+  };
+
+  [[nodiscard]] constexpr auto
+  begin() noexcept -> iterator
+  {
+    return {this, 0};
+  }
+
+  [[nodiscard]] constexpr auto
+  end() noexcept -> iterator
+  {
+    return {this, size()};
+  }
 };
 
-static_assert(std::totally_ordered<basic_bitvector<unsigned int, ssize_t<memory_view>>>);
 static_assert(bitvector<basic_bitvector<unsigned int, ssize_t<memory_view>>>);
+static_assert(std::random_access_iterator<basic_bitvector<unsigned int, ssize_t<memory_view>>::iterator>);
 
 struct succ_0_impl
 {

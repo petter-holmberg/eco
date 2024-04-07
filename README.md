@@ -207,7 +207,7 @@ The member type `ssize_type` is a signed type large enough to represent the
 maximum possible size of the `array`.
 
 `array` can be constructed with an initial capacity, or constructed and assigned
-from a  `std::ranges::forward_range`.
+from a `std::ranges::forward_range`.
 
 `array` supports the following operations:
 
@@ -371,9 +371,9 @@ assigned from a `std::ranges::forward_range`.
 `bitvector` describes a `std::regular` type with the following operations:
 
 - `size()` returns the number of stored bits.
-- `bitread(i)` returns bit `i`.
-- `bitset(i)` sets bit `i` to `1`.
-- `bitclear(i)` sets bit `i` to `0`.
+- `bit_read(i)` returns bit `i`.
+- `bit_set(i)` sets bit `i` to `1`.
+- `bit_clear(i)` sets bit `i` to `0`.
 - `init()` performs post-construction initialization for faster access.
 - `rank_0(i)` returns the number of 0-bits in the range `[0, i)`.
 - `rank_1(i)` returns the number of 1-bits in the range `[0, i)`.

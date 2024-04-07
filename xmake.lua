@@ -20,16 +20,17 @@ target("eco")
         "include/eco_concepts.mpp",
         "include/eco_algorithm.mpp",
         "include/eco_memory.mpp",
-        "include/eco_bitvector.mpp",
         "include/eco_allocator.mpp",
         "include/eco_extent.mpp",
         "include/eco_array.mpp",
         "include/eco_array_dict.mpp",
+        "include/eco_bitvector.mpp",
         "include/eco_forward_list_pool.mpp",
         "include/eco_iterator.mpp",
         "include/eco_list_pool.mpp",
         "include/eco_fixed_array.mpp",
         "include/eco_binary_tree.mpp",
+        "include/eco_parentheses.mpp",
         "include/eco_ordinal_tree.mpp",
         "eco.mpp"
     )

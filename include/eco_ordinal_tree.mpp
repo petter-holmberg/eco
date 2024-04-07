@@ -34,20 +34,20 @@ public:
   {
     auto head{root};
     auto tail{root};
-    bits.bitset(0);
+    bits.bit_set(0);
     ssize_type i{2};
     ssize_type j{0};
     while (head) {
       set_right_successor(tail, left_successor(head));
       while (has_right_successor(tail)) {
-        bits.bitset(i);
+        bits.bit_set(i);
         ++i;
         tail = right_successor(tail);
       }
       ++i;
       cur parent{head};
       head = right_successor(head);
-      if (!bits.bitread(j + 1)) {
+      if (!bits.bit_read(j + 1)) {
         set_right_successor(parent, limit);
         ++j;
       }
@@ -106,7 +106,7 @@ public:
   [[nodiscard]] constexpr auto
   is_leaf(ssize_type v) const noexcept -> bool
   {
-    return !bits.bitread(v);
+    return !bits.bit_read(v);
   }
 
   [[nodiscard]] constexpr auto

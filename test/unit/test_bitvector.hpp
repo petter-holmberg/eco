@@ -30,33 +30,33 @@ test_basic_bitvector()
     eco::basic_bitvector x{55};
     assert(x.size() == 55);
 
-    assert(!x.bitread(0));
-    x.bitclear(0);
-    assert(!x.bitread(0));
-    x.bitset(0);
-    assert(x.bitread(0));
-    x.bitset(1);
-    assert(x.bitread(1));
-    x.bitset(2);
-    assert(x.bitread(2));
-    x.bitset(3);
-    assert(x.bitread(3));
-    x.bitset(4);
-    assert(x.bitread(4));
-    x.bitset(16);
-    assert(x.bitread(16));
-    x.bitset(31);
-    assert(x.bitread(31));
-    x.bitset(32);
-    assert(x.bitread(32));
-    x.bitset(54);
-    assert(x.bitread(54));
+    assert(!x.bit_read(0));
+    x.bit_clear(0);
+    assert(!x.bit_read(0));
+    x.bit_set(0);
+    assert(x.bit_read(0));
+    x.bit_set(1);
+    assert(x.bit_read(1));
+    x.bit_set(2);
+    assert(x.bit_read(2));
+    x.bit_set(3);
+    assert(x.bit_read(3));
+    x.bit_set(4);
+    assert(x.bit_read(4));
+    x.bit_set(16);
+    assert(x.bit_read(16));
+    x.bit_set(31);
+    assert(x.bit_read(31));
+    x.bit_set(32);
+    assert(x.bit_read(32));
+    x.bit_set(54);
+    assert(x.bit_read(54));
   }
 
   {
     eco::basic_bitvector x{55};
-    x.bitset(1);
-    x.bitset(3);
+    x.bit_set(1);
+    x.bit_set(3);
 
     assert(eco::succ_0(x, 0) == 0);
     assert(eco::succ_0(x, 1) == 2);
