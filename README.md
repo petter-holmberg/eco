@@ -417,15 +417,49 @@ traversal of a `louds` tree, visiting the nodes in both pre- and post-order.
 - `prev_sibling(v)` returns the previous sibling of node `v`.
 - `parent(v)` returns the parent of node `v`.
 - `is_leaf(v)` returns `true` iff node `v` is a leaf.
-- `nodemap(v)` returns a unique identifier of node `v`, called its _index_.
-- `nodeselect(i)` returns the node with index `i`.
+- `node_map(v)` returns a unique identifier of node `v`, called its _index_.
+- `node_select(i)` returns the node with index `i`.
 - `children(v)` returns the number of children of node `v`.
 - `child(v, n)` returns the `n`:th child of node `v`.
 - `child_rank(v)` returns the `n` such that node `v` is the `n`:th child of
 its parent.
 - `begin` returns a `louds::iterator` pointing at the root node of the tree.
 - `end` returns a `louds::iterator` pointing past the root node of the tree.
-- `lca(t, u, v)` returns the lowest common ancestor of nodes `u` and `v` in `t`.
+- `lca(u, v)` returns the lowest common ancestor of nodes `u` and `v`.
+
+`bp_tree` is a compact representation of an ordinal tree. It can be constructed
+from a `std::ranges::input_range` of `boolean_testable` values, where `true`
+values correspond to a preorder visit and `false` values correspond to a
+postorder visit of the tree in full-order traversal order.
+`bp_tree::iterator` is a `std::bidirectional_iterator` that performs full-order
+traversal of a `bp_tree`.
+
+- `root()` returns the root node of the tree.
+- `first_child(v)` returns the first child of node `v`.
+- `last_child(v)` returns the last child of node `v`.
+- `next_sibling(v)` returns the next sibling of node `v`.
+- `prev_sibling(v)` returns the previous sibling of node `v`.
+- `parent(v)` returns the parent of node `v`.
+- `is_leaf(v)` returns `true` iff node `v` is a leaf.
+- `node_map(v)` returns a unique identifier of node `v`, called its _index_.
+- `node_select(i)` returns the node with index `i`.
+- `preorder(v)` returns the preorder value of `v` (`v`, then each subtree).
+- `preorder_select(i)` returns the node with preorder value `i`.
+- `postorder(v)` returns the postorder value of `v` (each subtree, then `v`).
+- `postorder_select(i)` returns the node with preorder value `i`.
+- `depth(v)` returns the depth of node `v`.
+- `subtree(v)` returns the number of nodes in the subtree of `v`, including `v`.
+- `is_ancestor(u, v)` returns `true` iff `u` is an ancestor of `v` or is `v`.
+- `level_ancestor(v, d)` returns the ancestor at distance `d` from `v`.
+- `deepest_node(v)` returns a deepest node in the subtree of node `v`.
+- `height(v)` returns the height of node `v` (the height of a leaf is 0).
+- `children(v)` returns the number of children of node `v`.
+- `child(v, n)` returns the `n`:th child of node `v`.
+- `child_rank(v)` returns the `n` such that node `v` is the `n`:th child of
+its parent.
+- `lca(u, v)` returns the lowest common ancestor of nodes `u` and `v`.
+- `begin` returns a `louds::iterator` pointing at the root node of the tree.
+- `end` returns a `louds::iterator` pointing past the root node of the tree.
 
 ## Sequences
 

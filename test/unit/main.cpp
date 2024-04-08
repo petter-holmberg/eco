@@ -160,6 +160,7 @@ int main()
   test_balanced_parentheses();
   test_binary_louds();
   test_louds();
+  test_bp_tree();
   test_fold();
   test_search();
 }

@@ -82,6 +82,50 @@ public:
   }
 
   [[nodiscard]] constexpr auto
+  is_opening(ssize_type i) const noexcept -> bool
+  {
+    return bits.bit_read(i) == 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  is_closing(ssize_type i) const noexcept -> bool
+  {
+    return bits.bit_read(i) == 0;
+  }
+
+  [[nodiscard]] constexpr auto
+  rank_0(ssize_type i) const noexcept -> ssize_type
+  {
+    contract_assert(i >= 0 && i <= size());
+
+    return bits.rank_0(i);
+  }
+
+  [[nodiscard]] constexpr auto
+  rank_1(ssize_type i) const noexcept -> ssize_type
+  {
+    contract_assert(i >= 0 && i <= size());
+
+    return bits.rank_1(i);
+  }
+
+  [[nodiscard]] constexpr auto
+  select_0(ssize_type i) const noexcept -> ssize_type
+  {
+    contract_assert(i >= 0 && i <= size());
+
+    return bits.select_0(i);
+  }
+
+  [[nodiscard]] constexpr auto
+  select_1(ssize_type i) const noexcept -> ssize_type
+  {
+    contract_assert(i >= 0 && i <= size());
+
+    return bits.select_1(i);
+  }
+
+  [[nodiscard]] constexpr auto
   excess(ssize_type i) const noexcept -> ssize_type
   {
     contract_assert(i >= -1);
@@ -233,10 +277,10 @@ struct find_excess_backward_impl
   [[nodiscard]] constexpr auto
   operator()(P const& p, ssize_t<P> i, ssize_t<P> e) const noexcept -> ssize_t<P>
   {
-    contract_assert(i > 0 && i <= p.size());
+    contract_assert(i >= 0 && i <= p.size());
 
     auto j = i - 1;
-    while (j != 0 && p.excess(j) != p.excess(i) + e) {
+    while (j != -1 && p.excess(j) != p.excess(i) + e) {
       --j;
     }
     return j;

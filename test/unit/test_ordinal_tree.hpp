@@ -85,17 +85,17 @@ test_louds()
   assert(x.is_leaf(x.first_child(x.first_child(x.root()))) == true);
   assert(x.is_leaf(x.last_child(x.root())) == true);
 
-  assert(x.nodemap(x.root()) == 0);
-  assert(x.nodemap(x.first_child(x.root())) == 1);
-  assert(x.nodemap(x.last_child(x.root())) == 3);
-  assert(x.nodemap(x.first_child(x.first_child(x.root()))) == 4);
-  assert(x.nodemap(x.last_child(x.first_child(x.root()))) == 5);
+  assert(x.node_map(x.root()) == 0);
+  assert(x.node_map(x.first_child(x.root())) == 1);
+  assert(x.node_map(x.last_child(x.root())) == 3);
+  assert(x.node_map(x.first_child(x.first_child(x.root()))) == 4);
+  assert(x.node_map(x.last_child(x.first_child(x.root()))) == 5);
 
-  assert(x.nodeselect(0) == x.root());
-  assert(x.nodeselect(1) == x.first_child(x.root()));
-  assert(x.nodeselect(3) == x.last_child(x.root()));
-  assert(x.nodeselect(4) == x.first_child(x.first_child(x.root())));
-  assert(x.nodeselect(5) == x.last_child(x.first_child(x.root())));
+  assert(x.node_select(0) == x.root());
+  assert(x.node_select(1) == x.first_child(x.root()));
+  assert(x.node_select(3) == x.last_child(x.root()));
+  assert(x.node_select(4) == x.first_child(x.first_child(x.root())));
+  assert(x.node_select(5) == x.last_child(x.first_child(x.root())));
 
   assert(x.children(x.root()) == 3);
   assert(x.children(x.first_child(x.root())) == 2);
@@ -114,15 +114,13 @@ test_louds()
   assert(x.child_rank(x.last_child(x.first_child(x.root()))) == 1);
   assert(x.child_rank(x.last_child(x.root())) == 2);
 
-  assert(eco::lca(x, x.root(), x.root()) == x.root());
-  assert(eco::lca(x, x.first_child(x.root()), x.last_child(x.root())) == x.root());
-  assert(eco::lca(x, x.first_child(x.first_child(x.root())), x.last_child(x.first_child(x.root()))) == x.first_child(x.root()));
+  assert(x.lca(x.root(), x.root()) == x.root());
+  assert(x.lca(x.first_child(x.root()), x.last_child(x.root())) == x.root());
+  assert(x.lca(x.first_child(x.first_child(x.root())), x.last_child(x.first_child(x.root()))) == x.first_child(x.root()));
 
   auto pos = x.begin();
   auto end = x.end();
 
-  assert(*pos == 2);
-  ++pos;
   assert(*pos == 6);
   ++pos;
   assert(*pos == 13);
@@ -142,7 +140,123 @@ test_louds()
   assert(*pos == 20);
   ++pos;
   assert(*pos == 28);
+  ++pos;
+  assert(*pos == 37);
+  ++pos;
+  assert(*pos == 37);
+  ++pos;
+  assert(*pos == 38);
+  ++pos;
+  assert(*pos == 38);
+  ++pos;
+  assert(*pos == 39);
+  ++pos;
+  assert(*pos == 39);
+  ++pos;
+  assert(*pos == 28);
+  ++pos;
+  assert(*pos == 20);
+  ++pos;
+  assert(*pos == 22);
+  ++pos;
+  assert(*pos == 22);
+  ++pos;
+  assert(*pos == 15);
+  ++pos;
+  assert(*pos == 18);
+  ++pos;
+  assert(*pos == 23);
+  ++pos;
+  assert(*pos == 32);
+  ++pos;
+  assert(*pos == 32);
+  ++pos;
+  assert(*pos == 33);
+  ++pos;
+  assert(*pos == 40);
+  ++pos;
+  assert(*pos == 40);
+  ++pos;
+  assert(*pos == 33);
+  ++pos;
+  assert(*pos == 35);
+  ++pos;
+  assert(*pos == 35);
+  ++pos;
+  assert(*pos == 36);
+  ++pos;
+  assert(*pos == 36);
+  ++pos;
+  assert(*pos == 23);
+  ++pos;
+  assert(*pos == 18);
+  ++pos;
+  assert(*pos == 9);
+  ++pos;
+  assert(*pos == 12);
+  ++pos;
+  assert(*pos == 12);
+  ++pos;
+  assert(pos == end);
 
+  --pos;
+  assert(*pos == 12);
+  --pos;
+  assert(*pos == 12);
+  --pos;
+  assert(*pos == 9);
+  --pos;
+  assert(*pos == 18);
+  --pos;
+  assert(*pos == 23);
+  --pos;
+  assert(*pos == 36);
+  --pos;
+  assert(*pos == 36);
+  --pos;
+  assert(*pos == 35);
+  --pos;
+  assert(*pos == 35);
+  --pos;
+  assert(*pos == 33);
+  --pos;
+  assert(*pos == 40);
+  --pos;
+  assert(*pos == 40);
+  --pos;
+  assert(*pos == 33);
+  --pos;
+  assert(*pos == 32);
+  --pos;
+  assert(*pos == 32);
+  --pos;
+  assert(*pos == 23);
+  --pos;
+  assert(*pos == 18);
+  --pos;
+  assert(*pos == 15);
+  --pos;
+  assert(*pos == 22);
+  --pos;
+  assert(*pos == 22);
+  --pos;
+  assert(*pos == 20);
+  --pos;
+  assert(*pos == 28);
+  --pos;
+  assert(*pos == 39);
+  --pos;
+  assert(*pos == 39);
+  --pos;
+  assert(*pos == 38);
+  --pos;
+  assert(*pos == 38);
+  --pos;
+  assert(*pos == 37);
+  --pos;
+  assert(*pos == 37);
+  --pos;
+  assert(*pos == 28);
   --pos;
   assert(*pos == 20);
   --pos;
@@ -161,8 +275,265 @@ test_louds()
   assert(*pos == 13);
   --pos;
   assert(*pos == 6);
+}
+
+inline void
+test_bp_tree()
+{
+  eco::basic_bitvector b{40};
+  b.bit_set(0);
+  b.bit_set(1);
+  b.bit_set(2);
+  b.bit_set(4);
+  b.bit_set(7);
+  b.bit_set(8);
+  b.bit_set(9);
+  b.bit_set(10);
+  b.bit_set(11);
+  b.bit_set(13);
+  b.bit_set(15);
+  b.bit_set(19);
+  b.bit_set(22);
+  b.bit_set(23);
+  b.bit_set(24);
+  b.bit_set(26);
+  b.bit_set(27);
+  b.bit_set(30);
+  b.bit_set(32);
+  b.bit_set(37);
+
+  eco::bp_tree x{std::ranges::begin(b), std::ranges::end(b)};
+
+  assert(x.root() == 0);
+
+  assert(x.first_child(x.root()) == 1);
+  assert(x.first_child(x.first_child(x.root())) == 2);
+
+  assert(x.last_child(x.root()) == 37);
+  assert(x.last_child(x.first_child(x.root())) == 4);
+
+  assert(x.next_sibling(x.first_child(x.root())) == 7);
+
+  assert(x.prev_sibling(x.last_child(x.root())) == 7);
+
+  assert(x.parent(x.first_child(x.root())) == 0);
+  assert(x.parent(x.last_child(x.root())) == 0);
+  assert(x.parent(x.first_child(x.first_child(x.root()))) == 1);
+  assert(x.parent(x.last_child(x.first_child(x.root()))) == 1);
+
+  assert(x.is_leaf(x.root()) == false);
+  assert(x.is_leaf(x.first_child(x.root())) == false);
+  assert(x.is_leaf(x.first_child(x.first_child(x.root()))) == true);
+  assert(x.is_leaf(x.last_child(x.root())) == true);
+
+  assert(x.node_map(x.root()) == 0);
+  assert(x.node_map(x.first_child(x.root())) == 1);
+  assert(x.node_map(x.last_child(x.root())) == 19);
+  assert(x.node_map(x.first_child(x.first_child(x.root()))) == 2);
+  assert(x.node_map(x.last_child(x.first_child(x.root()))) == 3);
+
+  assert(x.node_select(0) == x.root());
+  assert(x.node_select(1) == x.first_child(x.root()));
+  assert(x.node_select(2) == x.first_child(x.first_child(x.root())));
+  assert(x.node_select(3) == x.last_child(x.first_child(x.root())));
+  assert(x.node_select(4) == x.next_sibling(x.first_child(x.root())));
+
+  assert(x.preorder(10) == 7);
+  assert(x.preorder_select(7) == 10);
+
+  assert(x.postorder(8) == 9);
+  assert(x.postorder_select(9) == 8);
+
+  assert(x.depth(8) == 3);
+
+  assert(x.subtree(8) == 6);
+
+  assert(!x.is_ancestor(x.node_select(9), x.node_select(8)));
+  assert(x.is_ancestor(x.node_select(8), x.node_select(8)));
+  assert(x.is_ancestor(x.node_select(7), x.node_select(8)));
+  assert(x.is_ancestor(x.node_select(6), x.node_select(8)));
+  assert(x.is_ancestor(x.node_select(5), x.node_select(8)));
+  assert(x.is_ancestor(x.node_select(4), x.node_select(8)));
+  assert(!x.is_ancestor(x.node_select(3), x.node_select(8)));
+  assert(!x.is_ancestor(x.node_select(2), x.node_select(8)));
+  assert(!x.is_ancestor(x.node_select(1), x.node_select(8)));
+  assert(x.is_ancestor(x.node_select(0), x.node_select(8)));
+
+  assert(x.level_ancestor(19, 2) == 7);
+
+  assert(x.height(22) == 3);
+
+  assert(x.children(7) == 2);
+
+  assert(x.child(0, 0) == 1);
+  assert(x.child(0, 1) == 7);
+  assert(x.child(0, 2) == 37);
+  assert(x.child(7, 0) == 8);
+  assert(x.child(7, 1) == 22);
+
+  assert(x.child_rank(22) == 2);
+
+  assert(x.lca(10, 23) == 7);
+
+  auto pos = x.begin();
+  auto end = x.end();
+
+  assert(*pos == 1);
+  ++pos;
+  assert(*pos == 2);
+  ++pos;
+  assert(*pos == 2);
+  ++pos;
+  assert(*pos == 4);
+  ++pos;
+  assert(*pos == 4);
+  ++pos;
+  assert(*pos == 1);
+  ++pos;
+  assert(*pos == 7);
+  ++pos;
+  assert(*pos == 8);
+  ++pos;
+  assert(*pos == 9);
+  ++pos;
+  assert(*pos == 10);
+  ++pos;
+  assert(*pos == 11);
+  ++pos;
+  assert(*pos == 11);
+  ++pos;
+  assert(*pos == 13);
+  ++pos;
+  assert(*pos == 13);
+  ++pos;
+  assert(*pos == 15);
+  ++pos;
+  assert(*pos == 15);
+  ++pos;
+  assert(*pos == 10);
+  ++pos;
+  assert(*pos == 9);
+  ++pos;
+  assert(*pos == 19);
+  ++pos;
+  assert(*pos == 19);
+  ++pos;
+  assert(*pos == 8);
+  ++pos;
+  assert(*pos == 22);
+  ++pos;
+  assert(*pos == 23);
+  ++pos;
+  assert(*pos == 24);
+  ++pos;
+  assert(*pos == 24);
+  ++pos;
+  assert(*pos == 26);
+  ++pos;
+  assert(*pos == 27);
+  ++pos;
+  assert(*pos == 27);
+  ++pos;
+  assert(*pos == 26);
+  ++pos;
+  assert(*pos == 30);
+  ++pos;
+  assert(*pos == 30);
+  ++pos;
+  assert(*pos == 32);
+  ++pos;
+  assert(*pos == 32);
+  ++pos;
+  assert(*pos == 23);
+  ++pos;
+  assert(*pos == 22);
+  ++pos;
+  assert(*pos == 7);
+  ++pos;
+  assert(*pos == 37);
+  ++pos;
+  assert(*pos == 37);
+  ++pos;
+  assert(pos == end);
+
+  --pos;
+  assert(*pos == 37);
+  --pos;
+  assert(*pos == 37);
+  --pos;
+  assert(*pos == 7);
+  --pos;
+  assert(*pos == 22);
+  --pos;
+  assert(*pos == 23);
+  --pos;
+  assert(*pos == 32);
+  --pos;
+  assert(*pos == 32);
+  --pos;
+  assert(*pos == 30);
+  --pos;
+  assert(*pos == 30);
+  --pos;
+  assert(*pos == 26);
+  --pos;
+  assert(*pos == 27);
+  --pos;
+  assert(*pos == 27);
+  --pos;
+  assert(*pos == 26);
+  --pos;
+  assert(*pos == 24);
+  --pos;
+  assert(*pos == 24);
+  --pos;
+  assert(*pos == 23);
+  --pos;
+  assert(*pos == 22);
+  --pos;
+  assert(*pos == 8);
+  --pos;
+  assert(*pos == 19);
+  --pos;
+  assert(*pos == 19);
+  --pos;
+  assert(*pos == 9);
+  --pos;
+  assert(*pos == 10);
+  --pos;
+  assert(*pos == 15);
+  --pos;
+  assert(*pos == 15);
+  --pos;
+  assert(*pos == 13);
+  --pos;
+  assert(*pos == 13);
+  --pos;
+  assert(*pos == 11);
+  --pos;
+  assert(*pos == 11);
+  --pos;
+  assert(*pos == 10);
+  --pos;
+  assert(*pos == 9);
+  --pos;
+  assert(*pos == 8);
+  --pos;
+  assert(*pos == 7);
+  --pos;
+  assert(*pos == 1);
+  --pos;
+  assert(*pos == 4);
+  --pos;
+  assert(*pos == 4);
   --pos;
   assert(*pos == 2);
+  --pos;
+  assert(*pos == 2);
+  --pos;
+  assert(*pos == 1);
+  --pos;
+  assert(*pos == 0);
 }
 
 #endif
