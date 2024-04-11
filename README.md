@@ -423,9 +423,9 @@ traversal of a `louds` tree, visiting the nodes in both pre- and post-order.
 - `child(v, n)` returns the `n`:th child of node `v`.
 - `child_rank(v)` returns the `n` such that node `v` is the `n`:th child of
 its parent.
+- `lca(u, v)` returns the lowest common ancestor of nodes `u` and `v`.
 - `begin` returns a `louds::iterator` pointing at the root node of the tree.
 - `end` returns a `louds::iterator` pointing past the root node of the tree.
-- `lca(u, v)` returns the lowest common ancestor of nodes `u` and `v`.
 
 `bp_tree` is a compact representation of an ordinal tree. It can be constructed
 from a `std::ranges::input_range` of `boolean_testable` values, where `true`
@@ -460,6 +460,35 @@ its parent.
 - `lca(u, v)` returns the lowest common ancestor of nodes `u` and `v`.
 - `begin` returns a `louds::iterator` pointing at the root node of the tree.
 - `end` returns a `louds::iterator` pointing past the root node of the tree.
+
+`dfuds` (Depth-First Unary Degree Sequence) is a compact representation of an
+ordinal tree. It can be constructed from a tree of a known size with a pair of
+`linked_bicursor`s, where the `left_branch` points to the first child of a node
+and `right branch` points to the next sibling.
+`dfuds::iterator` is a `std::bidirectional_iterator` that performs full-order
+traversal of a `dfuds` tree, visiting the nodes in both pre- and post-order.
+
+- `root()` returns the root node of the tree.
+- `first_child(v)` returns the first child of node `v`.
+- `last_child(v)` returns the last child of node `v`.
+- `next_sibling(v)` returns the next sibling of node `v`.
+- `prev_sibling(v)` returns the previous sibling of node `v`.
+- `parent(v)` returns the parent of node `v`.
+- `is_leaf(v)` returns `true` iff node `v` is a leaf.
+- `node_map(v)` returns a unique identifier of node `v`, called its _index_.
+- `node_select(i)` returns the node with index `i`.
+- `preorder(v)` returns the preorder value of `v` (`v`, then each subtree).
+- `preorder_select(i)` returns the node with preorder value `i`.
+- `subtree(v)` returns the number of nodes in the subtree of `v`, including `v`.
+- `is_ancestor(u, v)` returns `true` iff node `u` is an ancestor of `v`,
+including `v`.
+- `children(v)` returns the number of children of node `v`.
+- `child(v, n)` returns the `n`:th child of node `v`.
+- `child_rank(v)` returns the `n` such that node `v` is the `n`:th child of
+its parent.
+- `lca(u, v)` returns the lowest common ancestor of nodes `u` and `v`.
+- `begin` returns a `dfuds::iterator` pointing at the root node of the tree.
+- `end` returns a `dfuds::iterator` pointing past the root node of the tree.
 
 ## Sequences
 

@@ -30,7 +30,7 @@ public:
 
   template <linked_bicursor cur>
   [[nodiscard]] constexpr
-  louds(cur root, cur limit, ssize_type n)
+  louds(cur root, cur nil, ssize_type n)
     : bits{2 * n + 1}
   {
     auto head{root};
@@ -49,7 +49,7 @@ public:
       cur parent{head};
       head = right_successor(head);
       if (!bits.bit_read(j + 1)) {
-        set_right_successor(parent, limit);
+        set_right_successor(parent, nil);
         ++j;
       }
       ++j;
@@ -345,13 +345,13 @@ public:
   [[nodiscard]] constexpr auto
   node_map(ssize_type v) const noexcept -> index_type
   {
-    return par.rank_1(v);
+    return par.rank_0(v);
   }
 
   [[nodiscard]] constexpr auto
   node_select(index_type i) const noexcept -> ssize_type
   {
-    return par.select_1(i);
+    return par.select_0(i);
   }
 
   [[nodiscard]] constexpr auto
@@ -369,19 +369,19 @@ public:
   [[nodiscard]] constexpr auto
   postorder(index_type v) const noexcept -> ssize_type
   {
-    return par.rank_0(find_closing(par, v));
+    return par.rank_1(find_closing(par, v));
   }
 
   [[nodiscard]] constexpr auto
   postorder_select(index_type i) const noexcept -> ssize_type
   {
-    return find_opening(par, par.select_0(i));
+    return find_opening(par, par.select_1(i));
   }
 
   [[nodiscard]] constexpr auto
   depth(index_type v) const noexcept -> ssize_type
   {
-    return 2 * par.rank_1(v) - v + 1;
+    return 2 * par.rank_0(v) - v + 1;
   }
 
   [[nodiscard]] constexpr auto
@@ -431,7 +431,7 @@ public:
   [[nodiscard]] constexpr auto
   child_rank(ssize_type v) const noexcept -> ssize_type
   {
-    contract_assert(v > 0);
+    contract_assert(v != root());
 
     return par.segment_min_count(find_enclosing(par, v), v);
   }
@@ -561,5 +561,303 @@ public:
 };
 
 static_assert(std::bidirectional_iterator<bp_tree<basic_parentheses<>>::iterator>);
+
+export template <parentheses P = basic_parentheses<>>
+class dfuds
+{
+  P par;
+
+public:
+  using ssize_type = ssize_t<P>;
+  using index_type = ssize_t<P>;
+
+  [[nodiscard]] constexpr
+  dfuds()
+    : par{4}
+  {
+    par.bitvector().bit_clear(1);
+    par.bitvector().bit_set(2);
+  }
+
+  template <linked_bicursor cur>
+  [[nodiscard]] constexpr
+  dfuds(cur root, cur nil, ssize_type n)
+    : par{2 * n + 2}
+  {
+    auto head{root};
+    auto first_child{root};
+    auto next_sibling{root};
+    par.bitvector().bit_clear(1);
+    par.bitvector().bit_set(2);
+    ssize_type i{3};
+    while (true) {
+      bool set{has_right_successor(head)};
+      if (set) {
+        next_sibling = right_successor(head);
+      }
+      if (has_left_successor(head)) {
+        first_child = left_successor(head);
+        head = first_child;
+        par.bitvector().bit_clear(i);
+        ++i;
+        while (has_right_successor(first_child)) {
+          par.bitvector().bit_clear(i);
+          ++i;
+          first_child = right_successor(first_child);
+        }
+        if (set) {
+          set_right_successor(first_child, next_sibling);
+        } else {
+          set_right_successor(first_child, nil);
+        }
+      } else {
+        if (!set) {
+          par.bitvector().bit_set(i);
+          break;
+        }
+        head = next_sibling;
+      }
+      par.bitvector().bit_set(i);
+      ++i;
+    }
+    par.bitvector().init();
+  }
+
+  [[nodiscard]] constexpr auto
+  root() const noexcept -> ssize_type
+  {
+    return 3;
+  }
+
+  [[nodiscard]] constexpr auto
+  first_child(ssize_type v) const noexcept -> ssize_type
+  {
+    contract_assert(v >= root() && v < par.size());
+
+    return succ_1(par.bitvector(), v) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  last_child(ssize_type v) const noexcept -> ssize_type
+  {
+    contract_assert(v >= root() && v < par.size());
+
+    return find_closing(par, v) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  next_sibling(ssize_type v) const noexcept -> ssize_type
+  {
+    contract_assert(v >= root() && v < par.size());
+
+    return find_excess(par, v - 1, -1) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  prev_sibling(ssize_type v) const noexcept -> ssize_type
+  {
+    contract_assert(v >= root() && v < par.size());
+
+    return find_closing(par, find_opening(par, v - 1) + 1) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  parent(ssize_type v) const noexcept -> ssize_type
+  {
+    contract_assert(v != root());
+
+    return pred_1(par.bitvector(), find_opening(par, v - 1)) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  is_leaf(ssize_type v) const noexcept -> bool
+  {
+    return par.is_closing(v);
+  }
+
+  [[nodiscard]] constexpr auto
+  node_map(ssize_type v) const noexcept -> index_type
+  {
+    return par.rank_1(v - 1);
+  }
+
+  [[nodiscard]] constexpr auto
+  node_select(index_type i) const noexcept -> ssize_type
+  {
+    return par.select_1(i) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  preorder(index_type v) const noexcept -> ssize_type
+  {
+    return node_map(v);
+  }
+
+  [[nodiscard]] constexpr auto
+  preorder_select(index_type i) const noexcept -> ssize_type
+  {
+    return node_select(i);
+  }
+
+  [[nodiscard]] constexpr auto
+  subtree(index_type v) const noexcept -> ssize_type
+  {
+    return (find_excess(par, v - 1, -1) - v) / 2 + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  is_ancestor(index_type u, index_type v) const noexcept -> bool
+  {
+    return (u <= v) && (v <= find_excess(par, u - 1, -1));
+  }
+
+  [[nodiscard]] constexpr auto
+  children(ssize_type v) const noexcept -> ssize_type
+  {
+    return succ_1(par.bitvector(), v) - v;
+  }
+
+  [[nodiscard]] constexpr auto
+  child(ssize_type v, ssize_type n) const noexcept -> ssize_type
+  {
+    contract_assert(n >= 0 && n < children(v));
+
+    return find_closing(par, succ_1(par.bitvector(), v) - n - 1) + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  child_rank(ssize_type v) const noexcept -> ssize_type
+  {
+    contract_assert(v != root());
+
+    const auto p = find_opening(par, v - 1);
+    return succ_1(par.bitvector(), p) - p;
+  }
+
+  [[nodiscard]] constexpr auto
+  lca(ssize_type u, ssize_type v) const noexcept -> ssize_type
+  {
+    if (v < u) {
+      return parent(par.segment_min(succ_1(par.bitvector(), v), u - 1) + 1);
+    } else {
+      return parent(par.segment_min(succ_1(par.bitvector(), u), v - 1) + 1);
+    }
+  }
+
+  class iterator
+  {
+    dfuds const* tree{};
+    ssize_type node{};
+    bool trailing{};
+
+  public:
+    using iterator_concept = std::bidirectional_iterator_tag;
+    using value_type = ssize_type;
+    using difference_type = ssize_type;
+
+    constexpr
+    iterator() = default;
+
+    constexpr
+    iterator(dfuds const* t, ssize_type n, bool tr)
+      : tree{t}, node{n}, trailing{tr}
+    {}
+
+    [[nodiscard]] friend constexpr auto
+    operator==(iterator const& i, iterator const& j) -> bool = default;
+
+    [[nodiscard]] explicit constexpr
+    operator bool() const noexcept
+    {
+      return trailing;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator*() const -> value_type
+    {
+      return node;
+    }
+
+    constexpr auto
+    operator++() -> iterator&
+    {
+      if (trailing) {
+        contract_assert(node != tree->root());
+
+        auto parent = tree->parent(node);
+        if (node == tree->last_child(parent)) {
+          node = parent;
+        } else {
+          trailing = false;
+          node = tree->next_sibling(node);
+        }
+      } else {
+        if (tree->is_leaf(node)) {
+          trailing = true;
+        } else {
+          node = tree->first_child(node);
+        }
+      }
+      return *this;
+    }
+
+    constexpr auto
+    operator++(int) -> iterator
+    {
+      auto i{*this};
+      ++(*this);
+      return i;
+    }
+
+    constexpr auto
+    operator--() -> iterator&
+    {
+      if (trailing) {
+        if (tree->is_leaf(node)) {
+          trailing = false;
+        } else {
+          node = tree->last_child(node);
+        }
+      } else {
+        contract_assert(node != tree->root());
+
+        auto parent = tree->parent(node);
+        if (node == tree->first_child(parent)) {
+          node = parent;
+        } else {
+          trailing = true;
+          node = tree->prev_sibling(node);
+        }
+      }
+      return *this;
+    }
+
+    constexpr auto
+    operator--(int) -> iterator
+    {
+      auto i{*this};
+      --(*this);
+      return i;
+    }
+  };
+
+  [[nodiscard]] constexpr auto
+  begin() const noexcept -> iterator
+  {
+    if (is_leaf(root())) {
+      return end();
+    } else {
+      return {this, first_child(root()), false};
+    }
+  }
+
+  [[nodiscard]] constexpr auto
+  end() const noexcept -> iterator
+  {
+    return iterator{this, root(), true};
+  }
+};
+
+static_assert(std::bidirectional_iterator<dfuds<basic_parentheses<>>::iterator>);
 
 }

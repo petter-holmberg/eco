@@ -38,7 +38,7 @@ public:
   {
     ssize_type i = 0;
     while (i != bits.size()) {
-      bits.bit_set(i);
+      bits.bit_set(i + 1);
       i += 2;
     }
   }
@@ -47,7 +47,7 @@ public:
     requires boolean_testable<std::iter_value_t<I>>
   constexpr
   basic_parentheses(I first, S last) noexcept
-    : bits{std::ranges::distance(first, last)}
+    : bits{last - first}
   {
     contract_assert(bits.size() % 2 == 0);
 
@@ -55,8 +55,6 @@ public:
     while (first != last) {
       if (*first) {
         bits.bit_set(i);
-      } else {
-        bits.bit_clear(i);
       }
       ++i;
       ++first;
@@ -75,6 +73,18 @@ public:
   [[nodiscard]] constexpr auto
   operator<=>(basic_parentheses const&) const -> std::strong_ordering = default;
 
+  constexpr auto
+  bitvector() noexcept -> B&
+  {
+    return bits;
+  }
+
+  constexpr auto
+  bitvector() const noexcept -> B const&
+  {
+    return bits;
+  }
+
   [[nodiscard]] constexpr auto
   size() const noexcept -> ssize_type
   {
@@ -84,13 +94,13 @@ public:
   [[nodiscard]] constexpr auto
   is_opening(ssize_type i) const noexcept -> bool
   {
-    return bits.bit_read(i) == 1;
+    return bits.bit_read(i) == 0;
   }
 
   [[nodiscard]] constexpr auto
   is_closing(ssize_type i) const noexcept -> bool
   {
-    return bits.bit_read(i) == 0;
+    return bits.bit_read(i) == 1;
   }
 
   [[nodiscard]] constexpr auto
@@ -131,7 +141,7 @@ public:
     contract_assert(i >= -1);
     contract_assert(i < size());
 
-    return 2 * bits.rank_1(i + 1) - (i + 1);
+    return 2 * bits.rank_0(i + 1) - (i + 1);
   }
 
   [[nodiscard]] constexpr auto
@@ -156,9 +166,9 @@ public:
     auto k = i;
     while (i != j) {
       if (bits.bit_read(i)) {
-        ++excess;
-      } else {
         --excess;
+      } else {
+        ++excess;
       }
       if (excess < min_excess) {
         min_excess = excess;
@@ -181,9 +191,9 @@ public:
     auto k = i;
     while (i != j) {
       if (bits.bit_read(i)) {
-        ++excess;
-      } else {
         --excess;
+      } else {
+        ++excess;
       }
       if (excess > max_excess) {
         max_excess = excess;
@@ -206,9 +216,9 @@ public:
     ssize_type n = 0;
     while (i != j) {
       if (bits.bit_read(i)) {
-        ++excess;
-      } else {
         --excess;
+      } else {
+        ++excess;
       }
       if (excess < min_excess) {
         min_excess = excess;
@@ -237,9 +247,9 @@ public:
     ++k;
     while (k != j) {
       if (bits.bit_read(k)) {
-        ++excess;
-      } else {
         --excess;
+      } else {
+        ++excess;
       }
       if (excess == 0) {
         if (m == n) {

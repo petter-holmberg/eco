@@ -161,6 +161,7 @@ int main()
   test_binary_louds();
   test_louds();
   test_bp_tree();
+  test_dfuds();
   test_fold();
   test_search();
 }
