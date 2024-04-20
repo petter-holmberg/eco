@@ -14,7 +14,7 @@ import :extent;
 namespace eco::inline cpp23 {
 
 export template <typename T>
-concept bitvector =
+concept bit_array =
   std::totally_ordered<T> &&
   std::constructible_from<ssize_t<T>> &&
   requires (T b, T const& cb, ssize_t<T> i) {
@@ -23,6 +23,14 @@ concept bitvector =
     b.bit_set(i);
     b.bit_clear(i);
     b.init();
+  };
+
+export template <typename T>
+concept bitvector =
+  std::totally_ordered<T> &&
+  std::constructible_from<ssize_t<T>> &&
+  requires (T b, T const& cb, ssize_t<T> i) {
+    { cb.size() } -> std::same_as<ssize_t<T>>;
     { cb.rank_0(i) } -> std::same_as<ssize_t<T>>;
     { cb.rank_1(i) } -> std::same_as<ssize_t<T>>;
     { cb.select_0(i) } -> std::same_as<ssize_t<T>>;
@@ -42,11 +50,7 @@ public:
 private:
   extent<Word, ssize_type, ssize_type, default_array_copy<Word>, default_array_growth, default_array_alloc> words;
 
-  [[nodiscard]] constexpr auto
-  w() const noexcept -> unsigned char
-  {
-    return 8 * sizeof(Word);
-  }
+  static inline constexpr auto w = bit_size_v<Word>;
 
 public:
   [[nodiscard]] constexpr
@@ -54,7 +58,7 @@ public:
 
   [[nodiscard]] explicit constexpr
   basic_bitvector(ssize_type size)
-    : words{static_cast<ssize_type>((size + (w() - 1)) / (w()))}
+    : words{static_cast<ssize_type>((size + (w - 1)) / w)}
   {
     if (size == 0) return;
     *words.metadata() = size;
@@ -83,7 +87,8 @@ public:
   {
     contract_assert(i >= 0 && i < size());
 
-    return *(words.begin() + (i / w())) >> (i % w()) & 1u;
+    auto qr{std::div(i, ssize_type(w))};
+    return eco::bit_read(*(words.begin() + qr.quot), qr.rem);
   }
 
   constexpr void
@@ -91,9 +96,8 @@ public:
   {
     contract_assert(i >= 0 && i < size());
 
-    *(words.begin() + (i / w())) |= (1u << (i % w()));
-
-    contract_assert(bit_read(i) == 1);
+    auto qr{std::div(i, ssize_type(w))};
+    eco::bit_set(*(words.begin() + qr.quot), qr.rem);
   }
 
   constexpr void
@@ -101,9 +105,24 @@ public:
   {
     contract_assert(i >= 0 && i < size());
 
-    *(words.begin() + (i / w())) &= ~(1u << (i % w()));
+    auto qr{std::div(i, ssize_type(w))};
+    eco::bit_clear(*(words.begin() + qr.quot), qr.rem);
+  }
 
-    contract_assert(bit_read(i) == 0);
+  [[nodiscard]] constexpr auto
+  bits_read(ssize_type i, std::uint8_t n) const noexcept -> Word
+  {
+    contract_assert(i >= 0);
+    contract_assert(n > 0 && n <= w);
+    contract_assert(i + n < size());
+
+    auto qr{std::div(i, ssize_type(w))};
+    std::random_access_iterator auto pos{words.begin() + qr.quot};
+    if (qr.rem + n <= w) {
+      return eco::bits_read(*pos, n, qr.rem);
+    } else {
+      return eco::bits_read_straddled(*pos, *(pos + 1), n, qr.rem);
+    }
   }
 
   [[nodiscard]] constexpr auto
@@ -119,15 +138,14 @@ public:
   {
     contract_assert(i >= 0 && i <= size());
 
-    auto quot = i / w();
-    auto rem = i % w();
+    auto qr{std::div(i, ssize_type(w))};
+    ssize_type j{};
     ssize_type ret{};
-    auto j = 0;
-    while (j != quot) {
-      ret += std::popcount(*(words.begin() + j));
+    while (j != qr.quot) {
+      ret += eco::rank_1(*(words.begin() + j));
       ++j;
     }
-    ret += (std::popcount(*(words.begin() + j) & ((1u << rem) - 1u)));
+    ret += eco::rank_1(*(words.begin() + j), std::uint8_t(qr.rem));
     return ret;
   }
 
@@ -136,17 +154,16 @@ public:
   {
     contract_assert(i >= 0 && i <= size());
 
-    auto quot = i / w();
+    auto quot{i / w};
+    ssize_type j{};
     ssize_type ret{};
-    auto j = 0;
-    auto next = 0;
     while (j != quot) {
-      next = sizeof(Word) - std::popcount(*(words.begin() + j));
+      auto next{eco::rank_0(*(words.begin() + j))};
       if (ret + next > i) break;
       ret += next;
       ++j;
     }
-    j *= w();
+    j *= w;
     while (j != size()) {
       if (!bit_read(j)) ++ret;
       if (ret > i) return j;
@@ -160,17 +177,16 @@ public:
   {
     contract_assert(i >= 0 && i <= size());
 
-    auto quot = i / w();
+    auto quot{i / w};
+    ssize_type j{};
     ssize_type ret{};
-    auto j = 0;
-    auto next = 0;
     while (j != quot) {
-      next = std::popcount(*(words.begin() + j));
+      auto next{eco::rank_1(*(words.begin() + j))};
       if (ret + next > i) break;
       ret += next;
       ++j;
     }
-    j *= w();
+    j *= w;
     while (j != size()) {
       if (bit_read(j)) ++ret;
       if (ret > i) return j;

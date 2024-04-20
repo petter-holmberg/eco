@@ -8,15 +8,16 @@ export module eco:parentheses;
 
 import std;
 import :bitvector;
+import :binary_tree;
 
 namespace eco::inline cpp23 {
 
 export template <typename T>
 concept parentheses =
-  std::totally_ordered<T> &&
-  std::constructible_from<ssize_t<T>> &&
+  bitvector<T> &&
   requires (T p, T const& cp, ssize_t<T> i) {
-    { cp.size() } -> std::same_as<ssize_t<T>>;
+    { cp.is_opening(i) } -> boolean_testable;
+    { cp.is_closing(i) } -> boolean_testable;
     { cp.excess(i) } -> std::same_as<ssize_t<T>>;
     { cp.excess(i, i) } -> std::same_as<ssize_t<T>>;
   };
@@ -38,7 +39,7 @@ public:
   {
     ssize_type i = 0;
     while (i != bits.size()) {
-      bits.bit_set(i + 1);
+      bits.bit_set(i);
       i += 2;
     }
   }
@@ -92,18 +93,6 @@ public:
   }
 
   [[nodiscard]] constexpr auto
-  is_opening(ssize_type i) const noexcept -> bool
-  {
-    return bits.bit_read(i) == 0;
-  }
-
-  [[nodiscard]] constexpr auto
-  is_closing(ssize_type i) const noexcept -> bool
-  {
-    return bits.bit_read(i) == 1;
-  }
-
-  [[nodiscard]] constexpr auto
   rank_0(ssize_type i) const noexcept -> ssize_type
   {
     contract_assert(i >= 0 && i <= size());
@@ -136,12 +125,24 @@ public:
   }
 
   [[nodiscard]] constexpr auto
+  is_opening(ssize_type i) const noexcept -> bool
+  {
+    return bits.bit_read(i);
+  }
+
+  [[nodiscard]] constexpr auto
+  is_closing(ssize_type i) const noexcept -> bool
+  {
+    return !bits.bit_read(i);
+  }
+
+  [[nodiscard]] constexpr auto
   excess(ssize_type i) const noexcept -> ssize_type
   {
     contract_assert(i >= -1);
     contract_assert(i < size());
 
-    return 2 * bits.rank_0(i + 1) - (i + 1);
+    return 2 * bits.rank_1(i + 1) - (i + 1);
   }
 
   [[nodiscard]] constexpr auto
@@ -165,10 +166,10 @@ public:
     ssize_type min_excess = 1;
     auto k = i;
     while (i != j) {
-      if (bits.bit_read(i)) {
-        --excess;
-      } else {
+      if (is_opening(i)) {
         ++excess;
+      } else {
+        --excess;
       }
       if (excess < min_excess) {
         min_excess = excess;
@@ -190,10 +191,10 @@ public:
     ssize_type max_excess = -1;
     auto k = i;
     while (i != j) {
-      if (bits.bit_read(i)) {
-        --excess;
-      } else {
+      if (is_opening(i)) {
         ++excess;
+      } else {
+        --excess;
       }
       if (excess > max_excess) {
         max_excess = excess;
@@ -215,10 +216,10 @@ public:
     ssize_type min_excess = 1;
     ssize_type n = 0;
     while (i != j) {
-      if (bits.bit_read(i)) {
-        --excess;
-      } else {
+      if (is_opening(i)) {
         ++excess;
+      } else {
+        --excess;
       }
       if (excess < min_excess) {
         min_excess = excess;
@@ -246,10 +247,10 @@ public:
     ssize_type excess = 0;
     ++k;
     while (k != j) {
-      if (bits.bit_read(k)) {
-        --excess;
-      } else {
+      if (is_opening(k)) {
         ++excess;
+      } else {
+        --excess;
       }
       if (excess == 0) {
         if (m == n) {
@@ -262,6 +263,8 @@ public:
     return k;
   }
 };
+
+static_assert(parentheses<basic_parentheses<>>);
 
 struct find_excess_impl
 {
@@ -340,7 +343,5 @@ struct find_enclosing_impl
 };
 
 export inline constexpr find_enclosing_impl find_enclosing{};
-
-static_assert(parentheses<basic_parentheses<>>);
 
 }

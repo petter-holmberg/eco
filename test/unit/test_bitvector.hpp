@@ -55,6 +55,26 @@ test_basic_bitvector()
 
   {
     eco::basic_bitvector x{55};
+    assert(x.size() == 55);
+
+    x.bit_set(0);
+    x.bit_set(2);
+    x.bit_set(30);
+    x.bit_set(33);
+    x.bit_set(34);
+
+    assert(x.bits_read(0, 1) == 1);
+    assert(x.bits_read(0, 2) == 1);
+    assert(x.bits_read(0, 3) == 5);
+    assert(x.bits_read(30, 1) == 1);
+    assert(x.bits_read(30, 2) == 1);
+    assert(x.bits_read(30, 3) == 1);
+    assert(x.bits_read(30, 4) == 9);
+    assert(x.bits_read(30, 5) == 25);
+  }
+
+  {
+    eco::basic_bitvector x{55};
     x.bit_set(1);
     x.bit_set(3);
 

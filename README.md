@@ -388,6 +388,32 @@ uncompressed form.
 
 ### Binary trees
 
+Binary trees are cardinal trees with at most 2 children, denoted left and right.
+
+### `balanced_binary_tree`
+
+`balanced_binary_tree` is a type constructor for balanced binary trees. It uses
+no extra storage for the tree structure.
+
+The type parameter `T` is the type of objects stored in the
+`balanced_binary_tree`.
+
+The type parameter `A` is the array type used to store the tree. By default it
+is `array<T>`.
+
+- `size()` returns the numer of nodes in the tree.
+- `root()` returns the root node of the tree.
+- `x[i]` accesses the element at index `i`.
+- `parent(i)` returns the parent of node at index `i`.
+- `has_left_child(i)` returns `true` iff node at index `i` has a left child.
+- `has_right_child(i)` returns `true` iff node at index `i` has a right child.
+- `is_leaf(i)` returns `true` iff node at index `i` is a leaf.
+- `left_child(i)` returns the left child of node at index `i`.
+- `right_child(i)` returns the right child of node at index `i`.
+- `leaf_select(j)` returns the child with index `j`.
+
+### `binary_louds`
+
 `binary_louds` (Level-Order Unary Degree Sequence) is a compact representation
 of a binary tree. It can be constructed from a binary tree of a known size with
 a pair of `bidirectional_bicursor`s.
@@ -402,6 +428,10 @@ a pair of `bidirectional_bicursor`s.
 - `child_label(v)` returns the label of the edge leading to node `v`.
 
 ### Ordinal trees
+
+Ordinal trees are trees with a variable number of children.
+
+### `louds`
 
 `louds` (Level-Order Unary Degree Sequence) is a compact representation of an
 ordinal tree. It can be constructed from a tree of a known size with a pair of
@@ -426,6 +456,8 @@ its parent.
 - `lca(u, v)` returns the lowest common ancestor of nodes `u` and `v`.
 - `begin` returns a `louds::iterator` pointing at the root node of the tree.
 - `end` returns a `louds::iterator` pointing past the root node of the tree.
+
+### `bp_tree`
 
 `bp_tree` is a compact representation of an ordinal tree. It can be constructed
 from a `std::ranges::input_range` of `boolean_testable` values, where `true`
@@ -460,6 +492,8 @@ its parent.
 - `lca(u, v)` returns the lowest common ancestor of nodes `u` and `v`.
 - `begin` returns a `louds::iterator` pointing at the root node of the tree.
 - `end` returns a `louds::iterator` pointing past the root node of the tree.
+
+### `dfuds`
 
 `dfuds` (Depth-First Unary Degree Sequence) is a compact representation of an
 ordinal tree. It can be constructed from a tree of a known size with a pair of

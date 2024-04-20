@@ -11,6 +11,9 @@ import std;
 
 namespace eco::inline cpp23 {
 
+export template <typename T>
+inline constexpr int bit_size_v = CHAR_BIT * sizeof(T);
+
 export template <std::integral T, std::integral U>
 [[nodiscard]] constexpr auto
 div_ceil(T x, U y) -> std::common_type_t<T, U>
@@ -18,162 +21,245 @@ div_ceil(T x, U y) -> std::common_type_t<T, U>
   return !!x + ((x - !!x) / y);
 }
 
-export template <typename T>
-inline constexpr int bit_size_v = CHAR_BIT * sizeof(T);
-
-export template <std::unsigned_integral T>
+export template <std::unsigned_integral T, std::integral U>
 [[nodiscard]] constexpr auto
-bit_read(T x, std::uint8_t i) noexcept -> T
+bit_read(T x, U i) noexcept -> bool
 {
-  contract_assert(i < bit_size_v<T>);
+  contract_assert(i >= 0 && i < bit_size_v<T>);
 
-  return x >> i & 1;
+  return x >> i & T{1};
 }
 
-export template <std::unsigned_integral T>
+export template <std::unsigned_integral T, std::integral U>
 [[nodiscard]] constexpr auto
-bit_set(T& x, std::uint8_t i) noexcept
+bit_set(T& x, U i) noexcept
 {
-  contract_assert(i < bit_size_v<T>);
+  contract_assert(i >= 0 && i < bit_size_v<T>);
 
   x |= T{1} << i;
 }
 
-export template <std::unsigned_integral T>
+export template <std::unsigned_integral T, std::integral U>
 [[nodiscard]] constexpr auto
-bit_clear(T& x, std::uint8_t i) noexcept
+bit_clear(T& x, U i) noexcept
 {
-  contract_assert(i < bit_size_v<T>);
+  contract_assert(i >= 0 && i < bit_size_v<T>);
 
   x &= ~(T{1} << i);
 }
 
-export template <std::unsigned_integral T>
+export template <std::unsigned_integral T, std::integral U>
 [[nodiscard]] constexpr auto
-bit_flip(T& x, std::uint8_t i) noexcept
+bit_flip(T& x, U i) noexcept
 {
-  contract_assert(i < bit_size_v<T>);
+  contract_assert(i >= 0 && i < bit_size_v<T>);
 
   x ^= T{1} << i;
 }
 
-export template <std::uint8_t n, std::uint8_t i, std::unsigned_integral T>
-requires (n > 0 && i < bit_size_v<T> && i + n <= bit_size_v<T>)
+export template <int n, int i, std::integral T>
+requires (n > 0 && i >= 0 && i < bit_size_v<T> && i + n <= bit_size_v<T>)
 [[nodiscard]] constexpr auto
 bits_read(T x) noexcept -> T
 {
   if constexpr (n == 1) {
-    return x >> i & 1;
+    return x >> i & T{1};
   } else {
-    return x >> i & ((T{1} << n) - 1);
+    return x >> i & ((T{1} << n) - T{1});
   }
 }
 
-export template <std::uint8_t n, std::unsigned_integral T>
+export template <int n, std::unsigned_integral T, std::integral U>
 requires (n > 0 && n <= bit_size_v<T>)
 [[nodiscard]] constexpr auto
-bits_read(T x, std::uint8_t i) noexcept -> T
+bits_read(T x, U i) noexcept -> T
 {
-  contract_assert(i < bit_size_v<T>);
+  contract_assert(i >= 0 && i < bit_size_v<T>);
   contract_assert(i + n <= bit_size_v<T>);
 
   if constexpr (n == 1) {
-    return x >> i & 1;
+    return x >> i & T{1};
   } else {
-    return x >> i & ((T{1} << n) - 1);
+    return x >> i & ((T{1} << n) - T{1});
   }
 }
 
-export template <std::unsigned_integral T>
+export template <std::unsigned_integral T, std::integral U, std::integral V>
 [[nodiscard]] constexpr auto
-bits_read(T x, std::uint8_t n, std::uint8_t i) noexcept -> T
+bits_read(T x, U n, V i) noexcept -> T
 {
-  contract_assert(n > 0);
-  contract_assert(i < bit_size_v<T>);
+  contract_assert(n > 0 && n <= bit_size_v<T>);
+  contract_assert(i >= 0 && i < bit_size_v<T>);
   contract_assert(i + n <= bit_size_v<T>);
 
-  return x >> i & ((T{1} << n) - 1);
+  return x >> i & ((T{1} << n) - T{1});
 }
 
-export template <std::uint8_t n, std::unsigned_integral T>
+export template <int n, std::unsigned_integral T, std::integral U>
 requires (n > 0 && n <= bit_size_v<T>)
 constexpr void
-bits_write(T& x, T value, std::uint8_t i) noexcept
+bits_write(T& x, T value, U i) noexcept
 {
-  contract_assert(i < bit_size_v<T>);
+  contract_assert(i >= 0 && i < bit_size_v<T>);
   contract_assert(i + n <= bit_size_v<T>);
 
-  x &= ~(((T{1} << n) - 1) << i);
+  x &= ~(((T{1} << n) - T{1}) << i);
   x |= value << i;
 }
 
-export template <std::unsigned_integral T>
+export template <std::unsigned_integral T, std::integral U, std::integral V>
 constexpr void
-bits_write(T& x, T value, std::uint8_t n, std::uint8_t i) noexcept
+bits_write(T& x, T value, U n, V i) noexcept
 {
-  contract_assert(n > 0);
-  contract_assert(n <= bit_size_v<T>);
-  contract_assert(i < bit_size_v<T>);
+  contract_assert(n > 0 && n <= bit_size_v<T>);
+  contract_assert(i >= 0 && i < bit_size_v<T>);
   contract_assert(i + n <= bit_size_v<T>);
 
-  x &= ~(((T{1} << n) - 1) << i);
+  x &= ~(((T{1} << n) - T{1}) << i);
   x |= value << i;
 }
 
-export template <std::uint8_t n, std::uint8_t i, std::unsigned_integral T>
-requires (n > 0 && n <= bit_size_v<T> && i < bit_size_v<T> && i + n > bit_size_v<T>)
+export template <int n, int i, std::unsigned_integral T>
+requires (n > 0 && n <= bit_size_v<T> && i >= 0 && i < bit_size_v<T> && i + n > bit_size_v<T>)
 [[nodiscard]] constexpr auto
 bits_read_straddled(T x, T y) noexcept -> T
 {
-  return (x >> i) | (y & ((T{1} << ((i + n) % bit_size_v<T>)) - 1)) << (bit_size_v<T> - i);
+  return (x >> i) | (y & ((T{1} << ((i + n) % bit_size_v<T>)) - T{1})) << (bit_size_v<T> - i);
 }
 
-export template <std::uint8_t n, std::unsigned_integral T>
+export template <int n, std::unsigned_integral T, std::integral U>
 requires (n > 0 && n <= bit_size_v<T>)
 [[nodiscard]] constexpr auto
-bits_read_straddled(T x, T y, std::uint8_t i) noexcept -> T
+bits_read_straddled(T x, T y, U i) noexcept -> T
 {
-  contract_assert(i < bit_size_v<T>);
+  contract_assert(i >= 0 && i < bit_size_v<T>);
   contract_assert(i + n > bit_size_v<T>);
 
-  return (x >> i) | (y & ((T{1} << ((i + n) % bit_size_v<T>)) - 1)) << (bit_size_v<T> - i);
+  return (x >> i) | (y & ((T{1} << ((i + n) % bit_size_v<T>)) - T{1})) << (bit_size_v<T> - i);
+}
+
+export template <std::unsigned_integral T, std::integral U, std::integral V>
+[[nodiscard]] constexpr auto
+bits_read_straddled(T x, T y, U n, V i) noexcept -> T
+{
+  contract_assert(n > 0 && n <= bit_size_v<T>);
+  contract_assert(i >= 0 && i < bit_size_v<T>);
+  contract_assert(i + n > bit_size_v<T>);
+
+  return (x >> i) | (y & ((T{1} << ((i + n) % bit_size_v<T>)) - T{1})) << (bit_size_v<T> - i);
+}
+
+export template <int n, std::unsigned_integral T, std::integral U>
+requires (n > 1 && n <= bit_size_v<T>)
+constexpr void
+bits_write_straddled(T& x, T&y, T value, U i) noexcept
+{
+  contract_assert(i >= 0 && i < bit_size_v<T>);
+  contract_assert(i + n > bit_size_v<T>);
+
+  x = (x & ((T{1} << i) - T{1})) | (value << i);
+  y = (y & ~((T{1} << ((i + n) % bit_size_v<T>)) - T{1})) | (value >> (bit_size_v<T> - i));
+}
+
+export template <std::unsigned_integral T, std::integral U, std::integral V>
+constexpr void
+bits_write_straddled(T& x, T&y, T value, U n, V i) noexcept
+{
+  contract_assert(n > 1 && n <= bit_size_v<T>);
+  contract_assert(i >= 0 && i < bit_size_v<T>);
+  contract_assert(i + n > bit_size_v<T>);
+
+  x = (x & ((T{1} << i) - T{1})) | (value << i);
+  y = (y & ~((T{1} << ((i + n) % bit_size_v<T>)) - T{1})) | (value >> (bit_size_v<T> - i));
 }
 
 export template <std::unsigned_integral T>
 [[nodiscard]] constexpr auto
-bits_read_straddled(T x, T y, std::uint8_t n, std::uint8_t i) noexcept -> T
+rank_1(T x) noexcept -> int
 {
-  contract_assert(n > 0);
-  contract_assert(n <= bit_size_v<T>);
-  contract_assert(i < bit_size_v<T>);
-  contract_assert(i + n > bit_size_v<T>);
-
-  return (x >> i) | (y & ((T{1} << ((i + n) % bit_size_v<T>)) - 1)) << (bit_size_v<T> - i);
-}
-
-export template <std::uint8_t n, std::unsigned_integral T>
-requires (n > 1 && n <= bit_size_v<T>)
-constexpr void
-bits_write_straddled(T& x, T&y, T value, std::uint8_t i) noexcept
-{
-  contract_assert(i < bit_size_v<T>);
-  contract_assert(i + n > bit_size_v<T>);
-
-  x = (x & ((T{1} << i) - 1)) | (value << i);
-  y = (y & ~((T{1} << ((i + n) % bit_size_v<T>)) - 1)) | (value >> (bit_size_v<T> - i));
+  return std::popcount(x);
 }
 
 export template <std::unsigned_integral T>
-constexpr void
-bits_write_straddled(T& x, T&y, T value, std::uint8_t n, std::uint8_t i) noexcept
+[[nodiscard]] constexpr auto
+rank_0(T x) noexcept -> int
 {
-  contract_assert(n > 1);
-  contract_assert(n <= bit_size_v<T>);
-  contract_assert(i < bit_size_v<T>);
-  contract_assert(i + n > bit_size_v<T>);
+  return bit_size_v<T> - rank_1(x);
+}
 
-  x = (x & ((T{1} << i) - 1)) | (value << i);
-  y = (y & ~((T{1} << ((i + n) % bit_size_v<T>)) - 1)) | (value >> (bit_size_v<T> - i));
+export template <std::unsigned_integral T, std::integral U>
+[[nodiscard]] constexpr auto
+mark_ls(U n) noexcept -> T
+{
+  contract_assert(n >= 0 && n <= bit_size_v<T>);
+
+  return (T{1} << (n / 2) << (n - (n / 2))) - T{1};
+}
+
+export template <std::unsigned_integral T, std::integral U>
+[[nodiscard]] constexpr auto
+mask_ls(T x, U n) noexcept -> T
+{
+  contract_assert(n >= 0 && n <= bit_size_v<T>);
+
+  return x & mark_ls<T>(n);
+}
+
+export template <std::unsigned_integral T, std::integral U>
+[[nodiscard]] constexpr auto
+rank_1(T x, U n) noexcept -> int
+{
+  contract_assert(n >= 0 && n <= bit_size_v<T>);
+
+  return rank_1(mask_ls(x, n));
+}
+
+export template <std::unsigned_integral T, std::integral U>
+[[nodiscard]] constexpr auto
+rank_0(T x, U n) noexcept -> int
+{
+  contract_assert(n >= 0 && n <= bit_size_v<T>);
+
+  return n - rank_1(x, n);
+}
+
+export template <std::unsigned_integral T>
+[[nodiscard]] constexpr auto
+clear_ls_1(T x) noexcept -> T
+{
+  return x & (x - T{1});
+}
+
+export template <std::unsigned_integral T>
+[[nodiscard]] constexpr auto
+mark_ls_1(T x) noexcept -> T
+{
+  return x & -x;
+}
+
+export template <std::unsigned_integral T, std::integral U>
+[[nodiscard]] constexpr auto
+select_1(T x, U n) -> int
+{
+  contract_assert(x != 0);
+  contract_assert(n > 0 && n <= rank_1(x));
+
+  while (n != 1) {
+    x = clear_ls_1(x);
+    --n;
+  }
+
+  return rank_1(T(mark_ls_1(x) - 1));
+}
+
+export template <std::unsigned_integral T, std::integral U>
+[[nodiscard]] constexpr auto
+select_0(T x, U n) -> int
+{
+  contract_assert(x != 0);
+  contract_assert(n > 0 && n <= rank_1(x));
+
+  return select_1(T(~x), n);
 }
 
 }

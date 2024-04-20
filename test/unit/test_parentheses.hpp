@@ -7,31 +7,33 @@ import eco;
 #include <cassert>
 
 inline void
-test_balanced_parentheses()
+test_basic_parentheses()
 {
   eco::basic_bitvector x{40};
-  x.bit_set(3);
-  x.bit_set(5);
-  x.bit_set(6);
-  x.bit_set(12);
-  x.bit_set(14);
-  x.bit_set(16);
-  x.bit_set(17);
-  x.bit_set(18);
-  x.bit_set(20);
-  x.bit_set(21);
-  x.bit_set(25);
-  x.bit_set(28);
-  x.bit_set(29);
-  x.bit_set(31);
-  x.bit_set(33);
-  x.bit_set(34);
-  x.bit_set(35);
-  x.bit_set(36);
-  x.bit_set(38);
-  x.bit_set(39);
+  x.bit_set(0);
+  x.bit_set(1);
+  x.bit_set(2);
+  x.bit_set(4);
+  x.bit_set(7);
+  x.bit_set(8);
+  x.bit_set(9);
+  x.bit_set(10);
+  x.bit_set(11);
+  x.bit_set(13);
+  x.bit_set(15);
+  x.bit_set(19);
+  x.bit_set(22);
+  x.bit_set(23);
+  x.bit_set(24);
+  x.bit_set(26);
+  x.bit_set(27);
+  x.bit_set(30);
+  x.bit_set(32);
+  x.bit_set(37);
 
   eco::basic_parentheses p{std::ranges::begin(x), std::ranges::end(x)};
+
+  assert(p.size() == 40);
 
   assert(p.excess(8) == 3);
   assert(p.excess(21) == 2);

@@ -281,26 +281,26 @@ inline void
 test_bp_tree()
 {
   eco::basic_bitvector b{40};
-  b.bit_set(3);
-  b.bit_set(5);
-  b.bit_set(6);
-  b.bit_set(12);
-  b.bit_set(14);
-  b.bit_set(16);
-  b.bit_set(17);
-  b.bit_set(18);
-  b.bit_set(20);
-  b.bit_set(21);
-  b.bit_set(25);
-  b.bit_set(28);
-  b.bit_set(29);
-  b.bit_set(31);
-  b.bit_set(33);
-  b.bit_set(34);
-  b.bit_set(35);
-  b.bit_set(36);
-  b.bit_set(38);
-  b.bit_set(39);
+  b.bit_set(0);
+  b.bit_set(1);
+  b.bit_set(2);
+  b.bit_set(4);
+  b.bit_set(7);
+  b.bit_set(8);
+  b.bit_set(9);
+  b.bit_set(10);
+  b.bit_set(11);
+  b.bit_set(13);
+  b.bit_set(15);
+  b.bit_set(19);
+  b.bit_set(22);
+  b.bit_set(23);
+  b.bit_set(24);
+  b.bit_set(26);
+  b.bit_set(27);
+  b.bit_set(30);
+  b.bit_set(32);
+  b.bit_set(37);
 
   eco::bp_tree x{std::ranges::begin(b), std::ranges::end(b)};
 

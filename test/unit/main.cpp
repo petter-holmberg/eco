@@ -157,7 +157,8 @@ int main()
   test_fixed_array<32, std::uint64_t>();
   test_fixed_array<63, std::uint64_t>();
   test_basic_bitvector();
-  test_balanced_parentheses();
+  test_basic_parentheses();
+  test_balanced_binary_tree();
   test_binary_louds();
   test_louds();
   test_bp_tree();

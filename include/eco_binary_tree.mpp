@@ -12,14 +12,232 @@ import :list_pool;
 
 namespace eco::inline cpp23 {
 
+export template <typename T, typename A = array<T>>
+class balanced_binary_tree
+{
+  A nodes;
+
+public:
+  using value_type = T;
+  using ssize_type = ssize_t<A>;
+  using index_type = ssize_t<A>;
+
+  constexpr
+  balanced_binary_tree() noexcept = default;
+
+  explicit constexpr
+  balanced_binary_tree(ssize_type n, T const& value = {})
+    : nodes{n}
+  {
+    while (n != 0) {
+      nodes.push_back(value);
+      --n;
+    }
+  }
+
+  [[nodiscard]] constexpr auto
+  size() const noexcept -> ssize_type
+  {
+    return nodes.size();
+  }
+
+  [[nodiscard]] constexpr auto
+  operator[](ssize_type v) noexcept -> T&
+  {
+    contract_assert(v < nodes.size());
+
+    return nodes[v];
+  }
+
+  [[nodiscard]] constexpr auto
+  operator[](ssize_type v) const noexcept -> T const&
+  {
+    contract_assert(v < nodes.size());
+
+    return nodes[v];
+  }
+
+  [[nodiscard]] constexpr auto
+  root() const noexcept -> ssize_type
+  {
+    return 0;
+  }
+
+  [[nodiscard]] constexpr auto
+  parent(ssize_type v) const noexcept -> ssize_type
+  {
+    contract_assert(v != root());
+
+    return (v - 1) / 2;
+  }
+
+  [[nodiscard]] constexpr auto
+  has_left_child(ssize_type v) const noexcept -> bool
+  {
+    contract_assert(v < nodes.size());
+
+    return 2 * v + 1 < nodes.size();
+  }
+
+  [[nodiscard]] constexpr auto
+  has_right_child(ssize_type v) const noexcept -> bool
+  {
+    contract_assert(v < nodes.size());
+
+    return 2 * v + 2 < nodes.size();
+  }
+
+  [[nodiscard]] constexpr auto
+  is_leaf(ssize_type v) const noexcept -> bool
+  {
+    contract_assert(v < nodes.size());
+
+    return !has_left_child(v);
+  }
+
+  [[nodiscard]] constexpr auto
+  left_child(ssize_type v) const noexcept -> ssize_type
+  {
+    contract_assert(v < nodes.size());
+
+    return 2 * v + 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  right_child(ssize_type v) const noexcept -> ssize_type
+  {
+    contract_assert(v < nodes.size());
+
+    return 2 * v + 2;
+  }
+
+  [[nodiscard]] constexpr auto
+  leaf_select(index_type i) const noexcept -> ssize_type
+  {
+    contract_assert(i < (nodes.size() + 1) / 2);
+
+    auto l{static_cast<unsigned int>((nodes.size() + 1) / 2)};
+
+    contract_assert(std::bit_width(l) < bit_size_v<ssize_type>);
+
+    auto m{static_cast<ssize_type>(ssize_type{1} << std::bit_width(l))};
+    if (i < 2 * l - m) {
+      return m + i - 1;
+    } else {
+      return m + i - l - 1;
+    }
+  }
+};
+
+export template <typename T, typename A = array<T>>
+class balanced_binary_tree_cursor
+{
+  balanced_binary_tree<T, A> const* tree = nullptr;
+  ssize_t<balanced_binary_tree<T, A>> node{};
+
+public:
+  using weight_type = decltype(node);
+
+  [[nodiscard]] constexpr
+  balanced_binary_tree_cursor() noexcept = default;
+
+  [[nodiscard]] explicit constexpr
+  balanced_binary_tree_cursor(balanced_binary_tree<T, A> const& t) noexcept
+    : tree{&t}
+    , node{t.root()}
+  {}
+
+  [[nodiscard]] constexpr
+  balanced_binary_tree_cursor(balanced_binary_tree<T, A> const& t, weight_type v) noexcept
+    : tree{&t}
+    , node{v}
+  {}
+
+  [[nodiscard]] constexpr auto
+  operator==(balanced_binary_tree_cursor const&) const noexcept -> bool = default;
+
+  [[nodiscard]] explicit constexpr
+  operator bool() const
+  {
+    return tree != nullptr;
+  }
+
+  [[nodiscard]] friend constexpr auto
+  has_left_successor(balanced_binary_tree_cursor i) noexcept -> bool
+  {
+    contract_assert(bool{i});
+
+    return i.tree->has_left_child(i.node);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  has_right_successor(balanced_binary_tree_cursor i) noexcept -> bool
+  {
+    contract_assert(bool{i});
+
+    return i.tree->has_right_child(i.node);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  left_successor(balanced_binary_tree_cursor i) noexcept -> balanced_binary_tree_cursor<T, A>
+  {
+    contract_assert(bool{i} && has_left_successor(i));
+
+    return {*i.tree, i.tree->left_child(i.node)};
+  }
+
+  [[nodiscard]] friend constexpr auto
+  right_successor(balanced_binary_tree_cursor i) noexcept -> balanced_binary_tree_cursor<T, A>
+  {
+    contract_assert(bool{i} && has_right_successor(i));
+
+    return {*i.tree, i.tree->right_child(i.node)};
+  }
+
+  [[nodiscard]] friend constexpr auto
+  has_predecessor(balanced_binary_tree_cursor i) noexcept -> bool
+  {
+    contract_assert(bool{i});
+
+    return i.node != i.tree->root();
+  }
+
+  [[nodiscard]] friend constexpr auto
+  predecessor(balanced_binary_tree_cursor i) noexcept -> balanced_binary_tree_cursor<T, A>
+  {
+    contract_assert(bool{i} && has_predecessor(i));
+
+    return {*i.tree, i.tree->parent(i.node)};
+  }
+
+  [[nodiscard]] constexpr auto
+  is_left_successor() const noexcept -> bool
+  {
+    contract_assert(bool{*this});
+
+    return (node & 1) == 1;
+  }
+
+  [[nodiscard]] constexpr auto
+  is_right_successor() const noexcept -> bool
+  {
+    contract_assert(bool{*this});
+
+    return (node & 1) == 0 && node != 0;
+  }
+
+};
+
+static_assert(eco::bidirectional_bicursor<balanced_binary_tree_cursor<int>>);
+
 export template <bitvector B = basic_bitvector<>>
 class binary_louds
 {
   B bits;
 
 public:
-  using ssize_type = ssize_t<memory_view>;
-  using index_type = ssize_t<memory_view>;
+  using ssize_type = ssize_t<B>;
+  using index_type = ssize_t<B>;
 
   [[nodiscard]] constexpr
   binary_louds() noexcept = default;
@@ -191,14 +409,18 @@ public:
   }
 
   [[nodiscard]] constexpr auto
-  is_left_successor() noexcept -> bool
+  is_left_successor() const noexcept -> bool
   {
+    contract_assert(bool{*this});
+
     return tree->child_label(node) == 0;
   }
 
   [[nodiscard]] constexpr auto
-  is_right_successor() noexcept -> bool
+  is_right_successor() const noexcept -> bool
   {
+    contract_assert(bool{*this});
+
     return tree->child_label(node) == 1;
   }
 };
@@ -224,6 +446,13 @@ struct is_left_successor_impl
     return has_left_successor(pred) && left_successor(pred) == cur;
   }
 
+  template <typename T, typename A>
+  [[nodiscard]] constexpr auto
+  operator()(balanced_binary_tree_cursor<T, A> cur) const -> bool
+  {
+    return cur.is_left_successor();
+  }
+
   template <bitvector B>
   [[nodiscard]] constexpr auto
   operator()(binary_louds_cursor<B> cur) const -> bool
@@ -244,6 +473,13 @@ struct is_right_successor_impl
 
     auto pred = predecessor(cur);
     return has_right_successor(pred) && right_successor(pred) == cur;
+  }
+
+  template <typename T, typename A>
+  [[nodiscard]] constexpr auto
+  operator()(balanced_binary_tree_cursor<T, A> cur) const -> bool
+  {
+    return cur.is_right_successor();
   }
 
   template <bitvector B>
@@ -299,12 +535,12 @@ struct tree_weight_impl
 {
   template <bidirectional_bicursor C>
   [[nodiscard]] constexpr auto
-  operator()(C cur) const noexcept -> weight_type_t<C>
+  operator()(C cur) const noexcept -> weight_t<C>
   {
-    if (!cur) return weight_type_t<C>(0);
+    if (!cur) return weight_t<C>(0);
     auto root{cur};
     auto v = df_visit::pre;
-    weight_type_t<C> n(1);
+    weight_t<C> n(1);
     do
     {
       tree_traverse_step(v, cur);
@@ -320,9 +556,9 @@ struct tree_height_impl
 {
   template <bidirectional_bicursor C>
   [[nodiscard]] constexpr auto
-  operator()(C cur) const noexcept -> weight_type_t<C>
+  operator()(C cur) const noexcept -> weight_t<C>
   {
-    using N = weight_type_t<C>;
+    using N = weight_t<C>;
     if (!cur) return N(0);
     auto root{cur};
     auto v = df_visit::pre;

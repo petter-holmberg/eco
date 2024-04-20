@@ -286,9 +286,9 @@ public:
       if (i < 0) {
         return *this -= (-i);
       } else {
-        difference_type n_bits{w * i};
-        pos += (n_bits / bit_size_v<T>);
-        offset += (n_bits % bit_size_v<T>);
+        auto qr{std::div(w * i, difference_type(bit_size_v<T>))};
+        pos += qr.quot;
+        offset += std::uint8_t(qr.rem);
         if (offset >= bit_size_v<T>) {
           offset -= bit_size_v<T>;
           ++pos;
@@ -303,13 +303,13 @@ public:
       if (i < 0) {
         return *this += (-i);
       } else {
-        difference_type n_bits{w * i};
-        pos -= (n_bits / bit_size_v<T>);
-        if (offset < (n_bits % bit_size_v<T>)) {
+        auto qr{std::div(w * i, difference_type(bit_size_v<T>))};
+        pos -= qr.quot;
+        if (offset < qr.rem) {
           offset += bit_size_v<T>;
           --pos;
         }
-        offset -= (n_bits % bit_size_v<T>);
+        offset -= std::uint8_t(qr.rem);
         return *this;
       }
     }
@@ -463,9 +463,9 @@ public:
       if (i < 0) {
         return *this -= (-i);
       } else {
-        difference_type n_bits{w * i};
-        pos += (n_bits / bit_size_v<T>);
-        offset += (n_bits % bit_size_v<T>);
+        auto qr{std::div(w * i, difference_type(bit_size_v<T>))};
+        pos += (qr.quot);
+        offset += std::uint8_t(qr.rem);
         if (offset >= bit_size_v<T>) {
           offset -= bit_size_v<T>;
           ++pos;
@@ -480,13 +480,13 @@ public:
       if (i < 0) {
         return *this += (-i);
       } else {
-        difference_type n_bits{w * i};
-        pos -= (n_bits / bit_size_v<T>);
-        if (offset < (n_bits % bit_size_v<T>)) {
+        auto qr{std::div(w * i, difference_type(bit_size_v<T>))};
+        pos -= qr.quot;
+        if (offset < qr.rem) {
           offset += bit_size_v<T>;
           --pos;
         }
-        offset -= (n_bits % bit_size_v<T>);
+        offset -= std::uint8_t(qr.rem);
         return *this;
       }
     }
@@ -671,7 +671,7 @@ public:
     contract_assert(n < size());
 
     auto const bit_offset{w * n};
-    return read(header.begin() + bit_offset / bit_size_v<T>, bit_offset % bit_size_v<T>);
+    return read(header.begin() + bit_offset / bit_size_v<T>, std::uint8_t(bit_offset % bit_size_v<T>));
   }
 
   [[nodiscard]] constexpr auto
@@ -766,7 +766,7 @@ public:
         offset = 0;
       } else {
         pos = header.end() - 2;
-        offset = static_cast<std::uint8_t>(bit_size_v<T> - bit_capacity);
+        offset = std::uint8_t(bit_size_v<T> - bit_capacity);
       }
     } else {
       assert(header);

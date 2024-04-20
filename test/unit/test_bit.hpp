@@ -267,6 +267,76 @@ test_bit()
     assert(x == 0b01100000);
     assert(y == 0b00000101);
   }
+
+  {
+    assert(eco::mark_ls<unsigned char>(0) == 0b00000000);
+    assert(eco::mark_ls<unsigned char>(1) == 0b00000001);
+    assert(eco::mark_ls<unsigned char>(2) == 0b00000011);
+    assert(eco::mark_ls<unsigned char>(3) == 0b00000111);
+    assert(eco::mark_ls<unsigned char>(4) == 0b00001111);
+    assert(eco::mark_ls<unsigned char>(5) == 0b00011111);
+    assert(eco::mark_ls<unsigned char>(6) == 0b00111111);
+    assert(eco::mark_ls<unsigned char>(7) == 0b01111111);
+    assert(eco::mark_ls<unsigned char>(8) == 0b11111111);
+  }
+
+  {
+    unsigned char x{0b01011001};
+    assert(eco::rank_1(x) == 4);
+    assert(eco::rank_1(x, 0) == 0);
+    assert(eco::rank_1(x, 1) == 1);
+    assert(eco::rank_1(x, 2) == 1);
+    assert(eco::rank_1(x, 3) == 1);
+    assert(eco::rank_1(x, 4) == 2);
+    assert(eco::rank_1(x, 5) == 3);
+    assert(eco::rank_1(x, 6) == 3);
+    assert(eco::rank_1(x, 7) == 4);
+    assert(eco::rank_1(x, 8) == 4);
+
+    assert(eco::rank_0(x) == 4);
+    assert(eco::rank_0(x, 0) == 0);
+    assert(eco::rank_0(x, 1) == 0);
+    assert(eco::rank_0(x, 2) == 1);
+    assert(eco::rank_0(x, 3) == 2);
+    assert(eco::rank_0(x, 4) == 2);
+    assert(eco::rank_0(x, 5) == 2);
+    assert(eco::rank_0(x, 6) == 3);
+    assert(eco::rank_0(x, 7) == 3);
+    assert(eco::rank_0(x, 8) == 4);
+  }
+
+  {
+    unsigned char x{0b01011001};
+
+    assert(eco::mark_ls_1(x) == 0b00000001);
+    x = eco::clear_ls_1(x);
+    assert(x == 0b01011000);
+    assert(eco::mark_ls_1(x) == 0b00001000);
+    x = eco::clear_ls_1(x);
+    assert(x == 0b01010000);
+    assert(eco::mark_ls_1(x) == 0b00010000);
+    x = eco::clear_ls_1(x);
+    assert(x == 0b01000000);
+    assert(eco::mark_ls_1(x) == 0b01000000);
+    x = eco::clear_ls_1(x);
+    assert(x == 0b00000000);
+    assert(eco::mark_ls_1(x) == 0b00000000);
+    x = eco::clear_ls_1(x);
+    assert(x == 0b00000000);
+  }
+
+  {
+    unsigned char x{0b01011001};
+    assert(eco::select_1(x, 1) == 0);
+    assert(eco::select_1(x, 2) == 3);
+    assert(eco::select_1(x, 3) == 4);
+    assert(eco::select_1(x, 4) == 6);
+
+    assert(eco::select_0(x, 1) == 1);
+    assert(eco::select_0(x, 2) == 2);
+    assert(eco::select_0(x, 3) == 5);
+    assert(eco::select_0(x, 4) == 7);
+  }
 }
 
 #endif

@@ -50,7 +50,7 @@ concept bidirectional_linker =
 export template <typename T>
 concept bicursor =
   std::regular<T> &&
-  std::integral<weight_type_t<T>> &&
+  std::integral<weight_t<T>> &&
   requires (T cur) {
     static_cast<bool>(cur);
     { has_left_successor(cur) } -> boolean_testable;
