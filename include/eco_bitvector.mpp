@@ -87,8 +87,8 @@ public:
   {
     contract_assert(i >= 0 && i < size());
 
-    auto qr{std::div(i, ssize_type(w))};
-    return eco::bit_read(*(words.begin() + qr.quot), qr.rem);
+    auto [quot, rem]{std::div(i, ssize_type(w))};
+    return eco::bit_read(*(words.begin() + quot), rem);
   }
 
   constexpr void
@@ -96,8 +96,8 @@ public:
   {
     contract_assert(i >= 0 && i < size());
 
-    auto qr{std::div(i, ssize_type(w))};
-    eco::bit_set(*(words.begin() + qr.quot), qr.rem);
+    auto [quot, rem]{std::div(i, ssize_type(w))};
+    eco::bit_set(*(words.begin() + quot), rem);
   }
 
   constexpr void
@@ -105,8 +105,8 @@ public:
   {
     contract_assert(i >= 0 && i < size());
 
-    auto qr{std::div(i, ssize_type(w))};
-    eco::bit_clear(*(words.begin() + qr.quot), qr.rem);
+    auto [quot, rem]{std::div(i, ssize_type(w))};
+    eco::bit_clear(*(words.begin() + quot), rem);
   }
 
   [[nodiscard]] constexpr auto
@@ -116,12 +116,12 @@ public:
     contract_assert(n > 0 && n <= w);
     contract_assert(i + n < size());
 
-    auto qr{std::div(i, ssize_type(w))};
-    std::random_access_iterator auto pos{words.begin() + qr.quot};
-    if (qr.rem + n <= w) {
-      return eco::bits_read(*pos, n, qr.rem);
+    auto [quot, rem]{std::div(i, ssize_type(w))};
+    std::random_access_iterator auto pos{words.begin() + quot};
+    if (rem + n <= w) {
+      return eco::bits_read(*pos, n, rem);
     } else {
-      return eco::bits_read_straddled(*pos, *(pos + 1), n, qr.rem);
+      return eco::bits_read_straddled(*pos, *(pos + 1), n, rem);
     }
   }
 
@@ -138,14 +138,14 @@ public:
   {
     contract_assert(i >= 0 && i <= size());
 
-    auto qr{std::div(i, ssize_type(w))};
+    auto [quot, rem]{std::div(i, ssize_type(w))};
     ssize_type j{};
     ssize_type ret{};
-    while (j != qr.quot) {
+    while (j != quot) {
       ret += eco::rank_1(*(words.begin() + j));
       ++j;
     }
-    ret += eco::rank_1(*(words.begin() + j), std::uint8_t(qr.rem));
+    ret += eco::rank_1(*(words.begin() + j), std::uint8_t(rem));
     return ret;
   }
 

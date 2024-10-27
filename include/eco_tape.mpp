@@ -1,0 +1,299 @@
+module;
+
+#include <cassert>
+
+#define contract_assert assert
+
+export module eco:tape;
+
+import std;
+import :bit;
+import :array;
+import :codec;
+
+namespace eco::inline cpp23 {
+
+export template
+<
+  typename codec = gamma_codec<unsigned long int>,
+  auto ga = default_array_growth,
+  auto& alloc = default_array_alloc
+>
+class tape
+{
+public:
+  using value_type = value_t<codec>;
+  using ssize_type = ssize_t<memory_view>;
+
+private:
+  bit_ptr<value_type> end_pos;
+  ssize_type n_elements{};
+  array<value_type, ga, alloc> data;
+
+  void push_back(value_type const& x)
+  {
+    end_pos = codec::encode(x, end_pos);
+    ++n_elements;
+  }
+
+public:
+
+  class const_reference
+  {
+    bit_ptr<value_type> pos;
+
+  public:
+    using value_type = tape::value_type;
+
+    [[nodiscard]] constexpr
+    const_reference(bit_ptr<value_type> pos)
+      : pos{pos}
+    {}
+
+    constexpr auto
+    operator=(const_reference const& x) -> const_reference&
+    {
+      return *this = value_type(x);
+    };
+
+    constexpr
+    operator value_type() const
+    {
+      return codec::decode(pos);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator==(const_reference const& x) const -> bool
+    {
+      return value_type{*this} == value_type(x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator!=(const_reference const& x) const -> bool
+    {
+      return !(*this == x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<(const_reference const& x) const -> bool
+    {
+      return value_type{*this} < value_type(x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>=(const_reference const& x) const -> bool
+    {
+      return !(*this < x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>(const_reference const& x) const -> bool
+    {
+      return (x < *this);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<=(const_reference const& x) const -> bool
+    {
+      return !(x < *this);
+    }
+  };
+
+  class const_iterator
+  {
+  public:
+    using iterator_concept = std::forward_iterator_tag;
+    using value_type = tape::value_type;
+    using difference_type = tape::ssize_type;
+
+  private:
+    bit_ptr<value_type> pos;
+
+  public:
+    constexpr
+    const_iterator() noexcept = default;
+
+    explicit constexpr
+    const_iterator(bit_ptr<value_type> pos) noexcept
+      : pos{pos}
+    {}
+
+    [[nodiscard]] constexpr auto
+    operator==(const_iterator it) const noexcept -> bool
+    {
+      return pos == it.pos;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator!=(const_iterator it) const noexcept -> bool
+    {
+      return !(*this == it);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator*() const noexcept -> const_reference
+    {
+      return const_reference(pos);
+    }
+
+    constexpr auto
+    operator++() noexcept -> const_iterator&
+    {
+      pos.offset += std::uint8_t(codec::bit_size(pos));
+      if (pos.offset >= bit_size_v<value_type>) {
+        pos.offset -= bit_size_v<value_type>;
+        ++pos.pos;
+      }
+      return *this;
+    }
+
+    constexpr auto
+    operator++(int) noexcept -> const_iterator
+    {
+      const_iterator it = *this;
+      ++(*this);
+      return it;
+    }
+  };
+
+  [[nodiscard]] explicit constexpr
+  tape() noexcept = default;
+
+  template <std::ranges::forward_range R>
+    requires
+      (!std::same_as<R, tape>) &&
+      std::constructible_from<value_type, std::ranges::range_value_t<R>>
+  [[nodiscard]] explicit constexpr
+  tape(R&& range) noexcept
+  {
+    eco::set_size(data, codec::word_size(range), {});
+    end_pos.pos = data.begin();
+    for (auto const& x : range) {
+      append(x);
+    }
+  }
+
+  template <std::ranges::forward_range R>
+    requires
+      (!std::same_as<R, tape>) &&
+      std::constructible_from<T, std::ranges::range_value_t<R>>
+  constexpr auto
+  operator=(R&& range) noexcept(std::is_nothrow_copy_constructible_v<std::ranges::range_value_t<R>>) -> tape&
+  {
+    tape temp{range};
+    std::ranges::swap(*this, temp);
+    return *this;
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator==(tape const& x, tape const& y) noexcept -> bool
+  {
+    if constexpr (codec::is_equality_preserving) {
+      return x.data == y.data;
+    } else {
+      return std::ranges::equal(x, y);
+    }
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator!=(tape const& x, tape const& y) noexcept -> bool
+  {
+    return !(x == y);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator<(tape const& x, tape const& y) noexcept -> bool
+  {
+    if constexpr (codec::is_order_preserving) {
+      return x.data < y.data;
+    } else {
+      return std::ranges::lexicographical_compare(x, y);
+    }
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator>=(tape const& x, tape const& y) noexcept -> bool
+  {
+    return !(x < y);
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator>(tape const& x, tape const& y) noexcept -> bool
+  {
+    return y < x;
+  }
+
+  [[nodiscard]] friend constexpr auto
+  operator<=(tape const& x, tape const& y) noexcept -> bool
+  {
+    return !(y < x);
+  }
+
+  [[nodiscard]] constexpr auto
+  size() const noexcept -> ssize_type
+  {
+    return n_elements;
+  }
+
+  [[nodiscard]] constexpr auto
+  begin() noexcept -> const_iterator
+  {
+    return const_iterator{{data.begin(), 0}};
+  }
+
+  [[nodiscard]] constexpr auto
+  cbegin() noexcept -> const_iterator
+  {
+    return const_iterator{{data.begin(), 0}};
+  }
+
+  [[nodiscard]] constexpr auto
+  end() noexcept -> const_iterator
+  {
+    return const_iterator{end_pos};
+  }
+
+  [[nodiscard]] constexpr auto
+  cend() noexcept -> const_iterator
+  {
+    return const_iterator{end_pos};
+  }
+
+  constexpr auto
+  append(value_type const& x)
+  {
+    auto bits{bit_size_v<value_type> - end_pos.offset};
+    if (codec::bit_size(x) > bits) {
+      data.push_back(0);
+      end_pos.pos = data.end() - (bits == 0 ? 1 : 2);
+    }
+    auto back{end_pos};
+    push_back(x);
+    return const_iterator{back};
+  }
+};
+
+static_assert(std::totally_ordered<tape<>>);
+static_assert(std::totally_ordered<tape<>::const_reference>);
+static_assert(std::forward_iterator<tape<>::const_iterator>);
+
+export template <typename codec, auto ga, auto& alloc>
+constexpr void
+swap(tape<codec, ga, alloc>& x, tape<codec, ga, alloc>& y) noexcept
+{
+  x.swap(y);
+}
+
+}
+
+namespace std {
+
+export template <typename codec, auto ga, auto& alloc>
+constexpr void
+swap(eco::tape<codec, ga, alloc>& x, eco::tape<codec, ga, alloc>& y) noexcept
+{
+  using eco::swap;
+  swap(x, y);
+}
+
+}

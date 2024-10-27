@@ -14,6 +14,9 @@ namespace eco::inline cpp23 {
 export template <typename T>
 inline constexpr int bit_size_v = CHAR_BIT * sizeof(T);
 
+export template <typename T>
+inline constexpr T msb_v = T{1} << (bit_size_v<T> - 1);
+
 export template <std::integral T, std::integral U>
 [[nodiscard]] constexpr auto
 div_ceil(T x, U y) -> std::common_type_t<T, U>
@@ -58,7 +61,7 @@ bit_flip(T& x, U i) noexcept
 }
 
 export template <int n, int i, std::integral T>
-requires (n > 0 && i >= 0 && i < bit_size_v<T> && i + n <= bit_size_v<T>)
+requires (n > 0 && n < bit_size_v<T> && i >= 0 && i < bit_size_v<T> && i + n <= bit_size_v<T>)
 [[nodiscard]] constexpr auto
 bits_read(T x) noexcept -> T
 {
@@ -70,7 +73,7 @@ bits_read(T x) noexcept -> T
 }
 
 export template <int n, std::unsigned_integral T, std::integral U>
-requires (n > 0 && n <= bit_size_v<T>)
+requires (n > 0 && n < bit_size_v<T>)
 [[nodiscard]] constexpr auto
 bits_read(T x, U i) noexcept -> T
 {
@@ -88,7 +91,7 @@ export template <std::unsigned_integral T, std::integral U, std::integral V>
 [[nodiscard]] constexpr auto
 bits_read(T x, U n, V i) noexcept -> T
 {
-  contract_assert(n > 0 && n <= bit_size_v<T>);
+  contract_assert(n > 0 && n < bit_size_v<T>);
   contract_assert(i >= 0 && i < bit_size_v<T>);
   contract_assert(i + n <= bit_size_v<T>);
 
@@ -96,7 +99,7 @@ bits_read(T x, U n, V i) noexcept -> T
 }
 
 export template <int n, std::unsigned_integral T, std::integral U>
-requires (n > 0 && n <= bit_size_v<T>)
+requires (n > 0 && n < bit_size_v<T>)
 constexpr void
 bits_write(T& x, T value, U i) noexcept
 {
@@ -111,7 +114,7 @@ export template <std::unsigned_integral T, std::integral U, std::integral V>
 constexpr void
 bits_write(T& x, T value, U n, V i) noexcept
 {
-  contract_assert(n > 0 && n <= bit_size_v<T>);
+  contract_assert(n > 0 && n < bit_size_v<T>);
   contract_assert(i >= 0 && i < bit_size_v<T>);
   contract_assert(i + n <= bit_size_v<T>);
 
@@ -120,7 +123,7 @@ bits_write(T& x, T value, U n, V i) noexcept
 }
 
 export template <int n, int i, std::unsigned_integral T>
-requires (n > 0 && n <= bit_size_v<T> && i >= 0 && i < bit_size_v<T> && i + n > bit_size_v<T>)
+requires (n > 0 && n <= bit_size_v<T> && i > 0 && i < bit_size_v<T> && i + n > bit_size_v<T>)
 [[nodiscard]] constexpr auto
 bits_read_straddled(T x, T y) noexcept -> T
 {
@@ -132,7 +135,7 @@ requires (n > 0 && n <= bit_size_v<T>)
 [[nodiscard]] constexpr auto
 bits_read_straddled(T x, T y, U i) noexcept -> T
 {
-  contract_assert(i >= 0 && i < bit_size_v<T>);
+  contract_assert(i > 0 && i < bit_size_v<T>);
   contract_assert(i + n > bit_size_v<T>);
 
   return (x >> i) | (y & ((T{1} << ((i + n) % bit_size_v<T>)) - T{1})) << (bit_size_v<T> - i);
@@ -143,7 +146,7 @@ export template <std::unsigned_integral T, std::integral U, std::integral V>
 bits_read_straddled(T x, T y, U n, V i) noexcept -> T
 {
   contract_assert(n > 0 && n <= bit_size_v<T>);
-  contract_assert(i >= 0 && i < bit_size_v<T>);
+  contract_assert(i > 0 && i < bit_size_v<T>);
   contract_assert(i + n > bit_size_v<T>);
 
   return (x >> i) | (y & ((T{1} << ((i + n) % bit_size_v<T>)) - T{1})) << (bit_size_v<T> - i);
@@ -154,7 +157,7 @@ requires (n > 1 && n <= bit_size_v<T>)
 constexpr void
 bits_write_straddled(T& x, T&y, T value, U i) noexcept
 {
-  contract_assert(i >= 0 && i < bit_size_v<T>);
+  contract_assert(i > 0 && i < bit_size_v<T>);
   contract_assert(i + n > bit_size_v<T>);
 
   x = (x & ((T{1} << i) - T{1})) | (value << i);
@@ -166,7 +169,7 @@ constexpr void
 bits_write_straddled(T& x, T&y, T value, U n, V i) noexcept
 {
   contract_assert(n > 1 && n <= bit_size_v<T>);
-  contract_assert(i >= 0 && i < bit_size_v<T>);
+  contract_assert(i > 0 && i < bit_size_v<T>);
   contract_assert(i + n > bit_size_v<T>);
 
   x = (x & ((T{1} << i) - T{1})) | (value << i);

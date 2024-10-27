@@ -122,10 +122,46 @@ public:
     };
 
     constexpr auto
-    operator=(const reference& x) -> reference&
+    operator=(reference const& x) -> reference&
     {
       return *this = value_type(x);
     };
+
+    [[nodiscard]] constexpr auto
+    operator==(reference const& x) const -> bool
+    {
+      return value_type{*this} == value_type(x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator!=(reference const& x) const -> bool
+    {
+      return !(*this == x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<(reference const& x) const -> bool
+    {
+      return value_type{*this} < value_type(x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>=(reference const& x) const -> bool
+    {
+      return !(*this < x);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>(reference const& x) const -> bool
+    {
+      return (x < *this);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<=(reference const& x) const -> bool
+    {
+      return !(x < *this);
+    }
 
     constexpr
     operator value_type() const
@@ -176,52 +212,76 @@ public:
       fixed_array::write(fixed_array::read(pos, offset) - x, pos, offset);
       return *this;
     }
+  };
+
+  class const_reference
+  {
+    T const* const pos;
+    std::uint8_t const offset;
+
+  public:
+    using value_type = T const;
+
+    [[nodiscard]] constexpr
+    const_reference(value_type* pos, uint8_t offset)
+      : pos{pos}, offset{offset}
+    {}
+
+    constexpr auto
+    operator=(reference const& x) -> const_reference&
+    {
+      return *this = value_type(x);
+    }
 
     [[nodiscard]] constexpr auto
-    operator==(const reference& x) const -> bool
+    operator==(const_reference const& x) const -> bool
     {
       return value_type{*this} == value_type(x);
     }
 
     [[nodiscard]] constexpr auto
-    operator!=(const reference& x) const -> bool
+    operator!=(const_reference const& x) const -> bool
     {
       return !(*this == x);
     }
 
     [[nodiscard]] constexpr auto
-    operator<(const reference& x) const -> bool
+    operator<(const_reference const& x) const -> bool
     {
       return value_type{*this} < value_type(x);
     }
 
     [[nodiscard]] constexpr auto
-    operator>=(const reference& x) const -> bool
+    operator>=(const_reference const& x) const -> bool
     {
       return !(*this < x);
     }
 
     [[nodiscard]] constexpr auto
-    operator>(const reference& x) const -> bool
+    operator>(const_reference const& x) const -> bool
     {
       return (x < *this);
     }
 
     [[nodiscard]] constexpr auto
-    operator<=(const reference& x) const -> bool
+    operator<=(const_reference const& x) const -> bool
     {
       return !(x < *this);
+    }
+
+    constexpr
+    operator value_type() const
+    {
+      return fixed_array::read(pos, offset);
     }
   };
 
   class iterator
   {
   public:
-    using iterator_category = std::random_access_iterator_tag;
+    using iterator_concept = std::random_access_iterator_tag;
     using value_type = T;
     using difference_type = typename fixed_array::ssize_type;
-    using reference = typename fixed_array::reference;
-    using pointer = reference*;
 
     friend class const_iterator;
 
@@ -237,9 +297,55 @@ public:
     {}
 
     [[nodiscard]] constexpr auto
+    operator==(iterator it) const noexcept -> bool
+    {
+      return pos == it.pos && offset == it.offset;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator!=(iterator it) const noexcept -> bool
+    {
+      return !(*this == it);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<(iterator it) const noexcept -> bool
+    {
+      if (pos == it.pos) {
+        return offset < it.offset;
+      } else {
+        return pos < pos;
+      }
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>=(iterator it) const noexcept -> bool
+    {
+      return !(*this < it);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>(iterator it) const noexcept -> bool
+    {
+      return (it < *this);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<=(iterator it) const noexcept -> bool
+    {
+      return !(it < *this);
+    }
+
+    [[nodiscard]] constexpr auto
     operator*() const noexcept -> reference
     {
       return reference{pos, offset};
+    }
+
+    [[nodiscard]] constexpr auto
+    operator[](difference_type i) const noexcept -> reference
+    {
+      return *(*this + i);
     }
 
     constexpr auto
@@ -286,30 +392,13 @@ public:
       if (i < 0) {
         return *this -= (-i);
       } else {
-        auto qr{std::div(w * i, difference_type(bit_size_v<T>))};
-        pos += qr.quot;
-        offset += std::uint8_t(qr.rem);
+        auto [quot, rem]{std::div(w * i, difference_type(bit_size_v<T>))};
+        pos += quot;
+        offset += std::uint8_t(rem);
         if (offset >= bit_size_v<T>) {
           offset -= bit_size_v<T>;
           ++pos;
         }
-        return *this;
-      }
-    }
-
-    constexpr auto
-    operator-=(difference_type i) noexcept -> iterator&
-    {
-      if (i < 0) {
-        return *this += (-i);
-      } else {
-        auto qr{std::div(w * i, difference_type(bit_size_v<T>))};
-        pos -= qr.quot;
-        if (offset < qr.rem) {
-          offset += bit_size_v<T>;
-          --pos;
-        }
-        offset -= std::uint8_t(qr.rem);
         return *this;
       }
     }
@@ -327,57 +416,28 @@ public:
       return it + i;
     }
 
+    constexpr auto
+    operator-=(difference_type i) noexcept -> iterator&
+    {
+      if (i < 0) {
+        return *this += (-i);
+      } else {
+        auto [quot, rem]{std::div(w * i, difference_type(bit_size_v<T>))};
+        pos -= quot;
+        if (offset < rem) {
+          offset += bit_size_v<T>;
+          --pos;
+        }
+        offset -= std::uint8_t(rem);
+        return *this;
+      }
+    }
+
     [[nodiscard]] constexpr auto
     operator-(difference_type i) const noexcept -> iterator
     {
       iterator it{*this};
       return it -= i;
-    }
-
-    [[nodiscard]] constexpr auto
-    operator[](difference_type i) const noexcept -> reference
-    {
-      return *(*this + i);
-    }
-
-    [[nodiscard]] constexpr auto
-    operator==(iterator it) const noexcept -> bool
-    {
-      return pos == it.pos && offset == it.offset;
-    }
-
-    [[nodiscard]] constexpr auto
-    operator!=(iterator it) const noexcept -> bool
-    {
-      return !(*this == it);
-    }
-
-    [[nodiscard]] constexpr auto
-    operator<(iterator it) const noexcept -> bool
-    {
-      if (pos == it.pos) {
-        return offset < it.offset;
-      } else {
-        return pos < pos;
-      }
-    }
-
-    [[nodiscard]] constexpr auto
-    operator>=(iterator it) const noexcept -> bool
-    {
-      return !(*this < it);
-    }
-
-    [[nodiscard]] constexpr auto
-    operator>(iterator it) const noexcept -> bool
-    {
-      return (it < *this);
-    }
-
-    [[nodiscard]] constexpr auto
-    operator<=(iterator it) const noexcept -> bool
-    {
-      return !(it < *this);
     }
 
     [[nodiscard]] constexpr auto
@@ -390,11 +450,9 @@ public:
   class const_iterator
   {
   public:
-    using iterator_category = std::random_access_iterator_tag;
+    using iterator_concept = std::random_access_iterator_tag;
     using value_type = T const;
     using difference_type = typename fixed_array::ssize_type;
-    using reference = T const;
-    using pointer = reference*;
 
   private:
     value_type const* pos;
@@ -414,9 +472,55 @@ public:
     {}
 
     [[nodiscard]] constexpr auto
-    operator*() const noexcept -> reference
+    operator==(const_iterator it) const noexcept -> bool
     {
-      return read(pos, offset);
+      return pos == it.pos && offset == it.offset;
+    }
+
+    [[nodiscard]] constexpr auto
+    operator!=(const_iterator it) const noexcept -> bool
+    {
+      return !(*this == it);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<(const_iterator it) const noexcept -> bool
+    {
+      if (pos == it.pos) {
+        return offset < it.offset;
+      } else {
+        return pos < pos;
+      }
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>=(const_iterator it) const noexcept -> bool
+    {
+      return !(*this < it);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator>(const_iterator it) const noexcept -> bool
+    {
+      return (it < *this);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator<=(const_iterator it) const noexcept -> bool
+    {
+      return !(it < *this);
+    }
+
+    [[nodiscard]] constexpr auto
+    operator*() const noexcept -> const_reference
+    {
+      return const_reference{pos, offset};
+    }
+
+    [[nodiscard]] constexpr auto
+    operator[](difference_type i) const noexcept -> const_reference
+    {
+      return *(*this + i);
     }
 
     constexpr auto
@@ -463,30 +567,13 @@ public:
       if (i < 0) {
         return *this -= (-i);
       } else {
-        auto qr{std::div(w * i, difference_type(bit_size_v<T>))};
-        pos += (qr.quot);
-        offset += std::uint8_t(qr.rem);
+        auto [quot, rem]{std::div(w * i, difference_type(bit_size_v<T>))};
+        pos += (quot);
+        offset += std::uint8_t(rem);
         if (offset >= bit_size_v<T>) {
           offset -= bit_size_v<T>;
           ++pos;
         }
-        return *this;
-      }
-    }
-
-    constexpr auto
-    operator-=(difference_type i) noexcept -> const_iterator&
-    {
-      if (i < 0) {
-        return *this += (-i);
-      } else {
-        auto qr{std::div(w * i, difference_type(bit_size_v<T>))};
-        pos -= qr.quot;
-        if (offset < qr.rem) {
-          offset += bit_size_v<T>;
-          --pos;
-        }
-        offset -= std::uint8_t(qr.rem);
         return *this;
       }
     }
@@ -504,57 +591,28 @@ public:
       return it + i;
     }
 
+    constexpr auto
+    operator-=(difference_type i) noexcept -> const_iterator&
+    {
+      if (i < 0) {
+        return *this += (-i);
+      } else {
+        auto [quot, rem]{std::div(w * i, difference_type(bit_size_v<T>))};
+        pos -= quot;
+        if (offset < rem) {
+          offset += bit_size_v<T>;
+          --pos;
+        }
+        offset -= std::uint8_t(rem);
+        return *this;
+      }
+    }
+
     [[nodiscard]] constexpr auto
     operator-(difference_type i) const noexcept -> const_iterator
     {
       const_iterator it{*this};
       return it -= i;
-    }
-
-    [[nodiscard]] constexpr auto
-    operator[](difference_type i) const noexcept -> reference
-    {
-      return *(*this + i);
-    }
-
-    [[nodiscard]] constexpr auto
-    operator==(const_iterator it) const noexcept -> bool
-    {
-      return pos == it.pos && offset == it.offset;
-    }
-
-    [[nodiscard]] constexpr auto
-    operator!=(const_iterator it) const noexcept -> bool
-    {
-      return !(*this == it);
-    }
-
-    [[nodiscard]] constexpr auto
-    operator<(const_iterator it) const noexcept -> bool
-    {
-      if (pos == it.pos) {
-        return offset < it.offset;
-      } else {
-        return pos < pos;
-      }
-    }
-
-    [[nodiscard]] constexpr auto
-    operator>=(const_iterator it) const noexcept -> bool
-    {
-      return !(*this < it);
-    }
-
-    [[nodiscard]] constexpr auto
-    operator>(const_iterator it) const noexcept -> bool
-    {
-      return (it < *this);
-    }
-
-    [[nodiscard]] constexpr auto
-    operator<=(const_iterator it) const noexcept -> bool
-    {
-      return !(it < *this);
     }
 
     [[nodiscard]] constexpr auto
@@ -623,7 +681,7 @@ public:
   [[nodiscard]] friend constexpr auto
   operator<(fixed_array const& x, fixed_array const& y) noexcept -> bool
   {
-    return std::lexicographical_compare(x.begin(), x.end(), y.begin(), y.end());
+    return std::ranges::lexicographical_compare(x, y);
   }
 
   [[nodiscard]] friend constexpr auto
@@ -946,6 +1004,7 @@ public:
 static_assert(std::totally_ordered<fixed_array<1>>);
 static_assert(std::ranges::random_access_range<fixed_array<1>>);
 static_assert(std::totally_ordered<fixed_array<1>::reference>);
+static_assert(std::totally_ordered<fixed_array<1>::const_reference>);
 static_assert(std::random_access_iterator<fixed_array<1>::iterator>);
 static_assert(std::random_access_iterator<fixed_array<1>::const_iterator>);
 

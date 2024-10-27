@@ -309,15 +309,15 @@ elements.
 chosen bit size, to avoid values straddling two elements of the underlying
 `array`.
 
-The value parameter `w` is the bit size of elements stored in the array. It
-satisfies `0 < w <= bit_size_v<T>`.
+The value parameter `w` is the bit size of elements stored in the `fixed_array`.
+It satisfies `0 < w <= bit_size_v<T>`.
 
-The type parameter `T` is the type of objects stored in the `array`. It must
-model `std::unsigned_integral`.
+The type parameter `T` is the type of objects stored in the `fixed_array`.
+It must model `std::unsigned_integral`.
 
-`array<T>` models `std::ranges::random_access_range<T>`.
+`fixed_array<T>` models `std::ranges::random_access_range<T>`.
 
-`array<T>` models `std::totally_ordered`.
+`fixed_array<T>` models `std::totally_ordered`.
 
 The value parameter `ga` is the growth algorithm used when more space is needed.
 `default_array_growth` is the default.
@@ -365,6 +365,53 @@ assigned from a `std::ranges::forward_range`.
 `fixed_array`).
 - `clear()` erases all elements in the `fixed_array`, without changing capacity.
 - `set_size(x, size, value)` resizes `x`, appending `value`s if `size > x.size()`.
+
+### `tape`
+
+`tape` is a type constructor for dynamic arrays of a variable bit size. It
+stores `std::unsigned_integral` values (where some leftmost bits are unused)
+compactly. The key differences compared to an `array` are.
+
+- Only supports `std::unsigned_integral` values.
+- Once constructed, new elements can only be appended.
+- Only supports `std::forward_iterator`s for read-only access to elements.
+- The bit-packing makes element access slower, but the smaller memory footprint
+makes the data more cache-friendly.
+- Elements are stored in an underlying `array` of `value_type`. When setting a
+capacity it may exceed the capacity required to store the given number of
+elements.
+
+The type parameter `codec` is the bit codec used to encode and decode elements.
+`gamma_codec<unsigned long int>` is the default.
+
+`tape<T>` models `std::ranges::forward_range<T>`.
+
+`tape<T>` models `std::totally_ordered`.
+
+The value parameter `ga` is the growth algorithm used when more space is needed.
+`default_array_growth` is the default.
+
+The value parameter `alloc` is the allocator object used to manage the owned
+memory. `default_array_alloc` is the default.
+
+The member type `value_type` is the type of objects stored in the `tape`.
+
+The member type `ssize_type` is a signed type large enough to represent the
+maximum possible size of the `tape`.
+
+The member type `const_iterator` is an iterator to elements of the `tape`
+with immutable access to the elements. It models `std::forward_iterator`.
+
+`tape` can be constructed empty, or constructed and assigned from a
+`std::ranges::forward_range`.
+
+- `size()` returns the size of the `tape`.
+- `begin()` returns an iterator to the beginning of the `tape`.
+- `cbegin()` returns an iterator to the beginning of the `tape`.
+- `end()` returns an iterator to the end of the `tape`.
+- `cend()` returns an iterator to the end of the `tape`.
+- `append(range)` appends a single element to the `tape`.
+- `swap(x, y)` swaps `tape` `x` with `tape` `y`.
 
 ## Bitvectors
 

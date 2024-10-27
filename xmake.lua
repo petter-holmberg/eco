@@ -29,6 +29,8 @@ target("eco")
         "include/eco_iterator.mpp",
         "include/eco_list_pool.mpp",
         "include/eco_fixed_array.mpp",
+        "include/eco_codec.mpp",
+        "include/eco_tape.mpp",
         "include/eco_binary_tree.mpp",
         "include/eco_parentheses.mpp",
         "include/eco_ordinal_tree.mpp",

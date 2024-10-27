@@ -1,0 +1,176 @@
+module;
+
+#include <cassert>
+
+#define contract_assert assert
+
+export module eco:codec;
+
+import std;
+import :bit;
+
+namespace eco::inline cpp23 {
+
+export template <typename T>
+struct bit_ptr
+{
+  T* pos{};
+  std::uint8_t offset{};
+
+  [[nodiscard]] constexpr bool operator==(bit_ptr const&) const = default;
+};
+
+template <typename T>
+inline constexpr bool is_equality_preserving_v = T::is_equality_preserving;
+
+template <typename T>
+inline constexpr bool is_order_preserving_v = T::is_order_preserving;
+
+export template <std::unsigned_integral T>
+struct unary_codec
+{
+  using value_type = T;
+
+  static inline constexpr T limit = bit_size_v<T>;
+  static inline constexpr bool is_equality_preserving = true;
+  static inline constexpr bool is_order_preserving = false;
+
+  [[nodiscard]] static constexpr auto
+  bit_size(T x) -> int
+  {
+    return int(x + 1);
+  }
+
+  [[nodiscard]] static constexpr auto
+  bit_size(bit_ptr<T> pos) -> int
+  {
+    return bit_size(decode(pos));
+  }
+
+  template <std::ranges::forward_range R>
+  [[nodiscard]] static constexpr auto
+  word_size(R&& range) -> std::ptrdiff_t
+  {
+    std::ptrdiff_t words{};
+    int bits{};
+    auto pos{std::ranges::begin(range)};
+    while (pos != std::ranges::end(range)) {
+      bits += bit_size(*pos);
+      if (bits > limit) {
+        ++words;
+        bits -= limit;
+      }
+      ++pos;
+    }
+    if (bits != 0) {
+      ++words;
+    }
+    return words;
+  }
+
+  static constexpr auto
+  encode(T x, bit_ptr<T> pos) -> bit_ptr<T>
+  {
+    contract_assert(x < limit);
+
+    T bit_capacity(bit_size_v<T> - pos.offset);
+    if (bit_capacity < T(bit_size(x))) {
+      x -= bit_capacity;
+      ++pos.pos;
+      pos.offset = 0;
+      *pos.pos = 0;
+    }
+    *pos.pos |= msb_v<T> >> (x + pos.offset);
+    pos.offset += std::uint8_t(bit_size(x));
+    return pos;
+  }
+
+  [[nodiscard]] static constexpr auto
+  decode(bit_ptr<T> pos) -> T
+  {
+    if (pos.offset == 0) {
+      return T(std::countl_zero(*pos.pos));
+    } else {
+      return T(std::countl_zero(bits_read_straddled<bit_size_v<T>>(*(pos.pos + 1), *pos.pos, bit_size_v<T> - pos.offset)));
+    }
+  }
+};
+
+export template <std::unsigned_integral T>
+struct gamma_codec
+{
+  using value_type = T;
+
+  static inline constexpr T limit = T(1) << (bit_size_v<T> / 2);
+  static inline constexpr bool is_equality_preserving = true;
+  static inline constexpr bool is_order_preserving = false;
+
+  [[nodiscard]] static constexpr auto
+  bit_size(T x) -> int
+  {
+    return 2 * std::bit_width(x) - 1;
+  }
+
+  [[nodiscard]] static constexpr auto
+  bit_size(bit_ptr<T> pos) -> int
+  {
+    return int(2 * unary_codec<T>::decode(pos) + 1);
+  }
+
+  template <std::ranges::forward_range R>
+  [[nodiscard]] static constexpr auto
+  word_size(R&& range) -> std::ptrdiff_t
+  {
+    std::ptrdiff_t words{};
+    T bits{};
+    auto pos{std::ranges::begin(range)};
+    while (pos != std::ranges::end(range)) {
+      bits += bit_size(*pos);
+      if (bits > limit) {
+        ++words;
+        bits -= limit;
+      }
+      ++pos;
+    }
+    if (bits != 0) {
+      ++words;
+    }
+    return words;
+  }
+
+  static constexpr auto
+  encode(T x, bit_ptr<T> pos) -> bit_ptr<T>
+  {
+    contract_assert(x > 0);
+    contract_assert(x < limit);
+
+    T bit_capacity(bit_size_v<T> - pos.offset);
+    if (bit_capacity < T(bit_size(x))) {
+      bits_write_straddled(*(pos.pos + 1), *pos.pos, x, bit_size(x), 2 * bit_size_v<T> - bit_size(x) - pos.offset);
+      ++pos.pos;
+      pos.offset += std::uint8_t(bit_size(x)) - bit_size_v<T>;
+    } else {
+      bits_write(*pos.pos, x, bit_size(x), bit_size_v<T> - bit_size(x) - pos.offset);
+      pos.offset += std::uint8_t(bit_size(x));
+    }
+    return pos;
+  }
+
+  [[nodiscard]] static constexpr auto
+  decode(bit_ptr<T> pos) -> T
+  {
+    T n{unary_codec<T>::decode(pos)};
+    pos.offset += std::uint8_t(n);
+    if (pos.offset >= bit_size_v<T>) {
+      pos.offset -= bit_size_v<T>;
+      ++pos.pos;
+    }
+    if (pos.offset + n < bit_size_v<T>) {
+      return T(bits_read(*pos.pos, n + 1, bit_size_v<T> - 1 - pos.offset - n));
+    } else {
+      return T(bits_read_straddled(*(pos.pos + 1), *pos.pos, n + 1, 2 * bit_size_v<T> - 1 - pos.offset - n));
+    }
+  }
+};
+
+}

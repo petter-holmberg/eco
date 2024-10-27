@@ -53,7 +53,7 @@ public:
   }
 
   constexpr auto
-  operator*() const noexcept -> const value_type&
+  operator*() const noexcept -> value_type&
   {
     return *pos;
   }
@@ -136,7 +136,7 @@ public:
   }
 
   constexpr auto
-  operator*() const noexcept -> const value_type&
+  operator*() const noexcept -> value_type&
   {
     return *pos;
   }
@@ -219,7 +219,7 @@ public:
   }
 
   constexpr auto
-  operator*() const noexcept -> const value_type&
+  operator*() const noexcept -> value_type&
   {
     return *pos;
   }
@@ -339,13 +339,13 @@ public:
   }
 
   constexpr auto
-  operator*() const noexcept -> const value_type&
+  operator*() const noexcept -> value_type&
   {
     return *pos;
   }
 
   constexpr auto
-  operator[](difference_type d) const -> const value_type&
+  operator[](difference_type d) const -> value_type&
   {
     return pos[d];
   }
@@ -506,25 +506,25 @@ public:
   }
 
   constexpr auto
-  operator*() const noexcept -> const value_type&
+  operator*() const noexcept -> value_type&
   {
     return *pos;
   }
 
   constexpr auto
-  operator->() const -> value_type const*
+  operator[](difference_type d) const -> value_type&
+  {
+    return pos[d];
+  }
+
+  constexpr auto
+  operator->() const -> value_type*
   {
     if constexpr (std::is_pointer_v<I>) {
       return pos;
     } else {
       return pos.operator->();
     }
-  }
-
-  constexpr auto
-  operator[](difference_type d) const -> const value_type&
-  {
-    return pos[d];
   }
 
   constexpr auto

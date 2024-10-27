@@ -124,6 +124,8 @@ set_right_successor(ptree_cursor i, ptree_cursor j)
 #include "test_forward_list_pool.hpp"
 #include "test_list_pool.hpp"
 #include "test_fixed_array.hpp"
+#include "test_codec.hpp"
+#include "test_tape.hpp"
 #include "test_bitvector.hpp"
 #include "test_parentheses.hpp"
 #include "test_binary_tree.hpp"
@@ -156,6 +158,9 @@ int main()
   test_fixed_array<6, std::uint64_t>();
   test_fixed_array<32, std::uint64_t>();
   test_fixed_array<63, std::uint64_t>();
+  test_unary_codec();
+  test_gamma_codec();
+  test_tape();
   test_basic_bitvector();
   test_basic_parentheses();
   test_balanced_binary_tree();
